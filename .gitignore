@@ -1,0 +1,18 @@
+# data + large artifacts
+data/
+*.pt
+*.bin
+*.npy
+*.tgz
+*.tar.bz2
+
+# backups / OS / caches
+*.bak
+.DS_Store
+__pycache__/
+.ipynb_checkpoints/
+
+# secrets — never commit
+kaggle.json
+*.token
+.env
