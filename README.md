@@ -95,7 +95,7 @@ Probe protocol is identical across variants (frozen encoder + 1×1×1 conv probe
 The notebook downloads everything it needs from Kaggle:
 
 - `hocop1/kitti-odometry` — 22 sequences of left-camera images, Velodyne LiDAR, calibration.
-- `luischavarriazamora/semantickitti` — per-point class labels.
+- `luischavarriazamora/semantic-kitti` — per-point class labels.
 
 Pretraining uses KITTI odometry sequences 00–21 (8000 stratified frames, 90/10 train/val split). Evaluation uses SemanticKITTI sequences 00–10 with the official 19-class mapping.
 
