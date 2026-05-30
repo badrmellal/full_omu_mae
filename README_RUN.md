@@ -65,7 +65,7 @@ These are read at runtime; the notebook never writes them to disk. `.gitignore` 
 ## 5. Install dependencies
 The `runpod-torch` template already has PyTorch + CUDA. Add:
 ```bash
-pip install -q kagglehub nuscenes-devkit pyquaternion scikit-image timm
+pip install -q kagglehub nuscenes-devkit pyquaternion scikit-image timm pandas
 ```
 (The notebook also auto-installs these if missing.)
 
