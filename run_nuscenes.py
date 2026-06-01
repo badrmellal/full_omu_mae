@@ -11,7 +11,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 # ---------------- FD-leak fix ----------------
-torch.multiprocessing.set_sharing_strategy('file_system')   # avoid FD-based tensor sharing
+# default 'file_descriptor' sharing auto-frees shm. ('file_system' leaks shm files -> Bus error.)
 try:
     _s, _h = resource.getrlimit(resource.RLIMIT_NOFILE)
     resource.setrlimit(resource.RLIMIT_NOFILE, (min(1048576, _h), _h))   # raise open-file ceiling
@@ -208,7 +208,7 @@ def enc_feats(model,dino,points,P2,Tr,use_dino):
 
 # ---------------- FIXED sweep (no FD leak) ----------------
 def loader(ds, shuffle):
-    return DataLoader(ds, batch_size=4, shuffle=shuffle, num_workers=4,
+    return DataLoader(ds, batch_size=4, shuffle=shuffle, num_workers=2,
                       pin_memory=False, persistent_workers=False, collate_fn=collate)   # <-- the fix
 def train_eval(model, use_dino, tr_ds, va_ds, frac, seed):
     g=np.random.RandomState(seed)
@@ -234,26 +234,43 @@ def train_eval(model, use_dino, tr_ds, va_ds, frac, seed):
     valid=union>0; return float((inter[valid]/np.maximum(union[valid],1)).mean())
 
 tr_ds=NuScenesCached(nusc_train_tokens); va_ds=NuScenesCached(nusc_val_tokens)
-raw={v:{f:[] for f in label_fractions} for v in VARIANTS}
+CKPT=OUT_BASE/'nuscenes_transfer_raw.json'
+done = json.load(open(CKPT)) if CKPT.exists() else {}
+if done: print(f'resuming: {len(done)} (seed,variant,frac) already done')
+
+def _save():
+    raw={v:{ff:[] for ff in label_fractions} for v in VARIANTS}
+    for k,val in done.items():
+        sd,va,fr=k.split('|'); raw[va][float(fr)].append(val)
+    agg={v:{ff:{'mean':float(np.mean(raw[v][ff])*100) if raw[v][ff] else 0.0,
+                'std':float(np.std(raw[v][ff])*100) if raw[v][ff] else 0.0} for ff in label_fractions} for v in VARIANTS}
+    json.dump(done, open(CKPT,'w'), indent=2)
+    json.dump({'version':NUSC_VERSION,'seeds':NUSC_SEEDS,'n_val':len(nusc_val_tokens),
+               'agg':{v:{str(ff):agg[v][ff] for ff in label_fractions} for v in VARIANTS}},
+              open(OUT_BASE/'nuscenes_transfer_results.json','w'), indent=2)
+    return agg
+
 for seed in NUSC_SEEDS:
     for variant in VARIANTS:
-        vcfg=VARIANTS[variant]; model=make_model(variant)
-        if vcfg['pretrain']:
+        if all(f'{seed}|{variant}|{fr}' in done for fr in label_fractions):
+            print(f'  skip seed{seed} {variant} (already done)'); continue
+        model=make_model(variant)
+        if VARIANTS[variant]['pretrain']:
             ck=torch.load(OUT_BASE/variant/'ckpt.pt',map_location=device,weights_only=False); model.load_state_dict(ck['model'])
-        ud=vcfg['use_dinov2_input']
+        ud=VARIANTS[variant]['use_dinov2_input']
         for frac in label_fractions:
-            m=train_eval(model,ud,tr_ds,va_ds,frac,seed); raw[variant][frac].append(m)
+            key=f'{seed}|{variant}|{frac}'
+            if key in done: continue
+            m=train_eval(model,ud,tr_ds,va_ds,frac,seed); done[key]=m
             print(f'  nusc seed{seed} {variant} @ {int(frac*100)}%: {m*100:.2f}', flush=True)
+            _save()                       # <-- incremental: crash loses at most ONE cell
         del model
         if IS_CUDA: torch.cuda.empty_cache()
-agg={v:{f:{'mean':float(np.mean(raw[v][f])*100),'std':float(np.std(raw[v][f])*100)} for f in label_fractions} for v in VARIANTS}
-with open(OUT_BASE/'nuscenes_transfer_results.json','w') as fh:
-    json.dump({'version':NUSC_VERSION,'seeds':NUSC_SEEDS,'n_val':len(nusc_val_tokens),
-               'agg':{v:{str(f):agg[v][f] for f in label_fractions} for v in VARIANTS}}, fh, indent=2)
+agg=_save()
 print('\n=== nuScenes transfer (official val, mean+/-std), mIoU % ===')
 print(f'{"label%":>7s}'+''.join(f'  {v:>13s}' for v in VARIANTS))
-for f in label_fractions:
-    print(f'{int(f*100):>6d}%'+''.join(f'  {agg[v][f]["mean"]:>6.2f}+/-{agg[v][f]["std"]:<4.2f}' for v in VARIANTS))
-# collect into results/
-import shutil; res=ROOT/'results'; res.mkdir(exist_ok=True); shutil.copy(OUT_BASE/'nuscenes_transfer_results.json', res/'nuscenes_transfer_results.json')
+for ff in label_fractions:
+    print(f'{int(ff*100):>6d}%'+''.join(f'  {agg[v][ff]["mean"]:>6.2f}+/-{agg[v][ff]["std"]:<4.2f}' for v in VARIANTS))
+import shutil; res=ROOT/'results'; res.mkdir(exist_ok=True)
+shutil.copy(OUT_BASE/'nuscenes_transfer_results.json', res/'nuscenes_transfer_results.json')
 print('\n=== nuScenes DONE -> results/nuscenes_transfer_results.json ===')
