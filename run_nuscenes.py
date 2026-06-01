@@ -28,7 +28,7 @@ OUT_BASE = ROOT / 'data' / 'runs' / 'kitti_omumae_full'
 NUSC_ROOT = ROOT / 'data' / 'nuscenes'
 NUSC_VERSION = 'v1.0-trainval'
 GRID = (128, 128, 32); VOX_RES = (0.4, 0.4, 0.4); H_DIM = 256; IMG_SIZE = 224
-NUSC_SEEDS = [0, 1, 2]          # set to [0] to cut runtime ~3x
+NUSC_SEEDS = [0]          # single seed (resumable: change to [0,1,2] later to add seeds 1+2)
 PROBE_EPOCHS = 5; PROBE_LR = 5e-3
 label_fractions = [0.01, 0.05, 0.10, 1.00]
 FEAT_DIM = 64; DINOV2_MODEL = 'dinov2_vitb14'; SLIDR_PROJ_DIM = 64
