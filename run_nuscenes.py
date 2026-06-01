@@ -144,8 +144,8 @@ from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits as _ns
 from pyquaternion import Quaternion
 def _inv(R,t): Ri=R.T; return Ri,-Ri@t
-def _rt(R,t): M=np.eye(4,np.float32); M[:3,:3]=R; M[:3,3]=t; return M[:3,:].astype(np.float32)
-def _comp(A,B): A4=np.eye(4,np.float32);A4[:3,:]=A; B4=np.eye(4,np.float32);B4[:3,:]=B; return (A4@B4)[:3,:].astype(np.float32)
+def _rt(R,t): M=np.eye(4,dtype=np.float32); M[:3,:3]=R; M[:3,3]=t; return M[:3,:].astype(np.float32)
+def _comp(A,B): A4=np.eye(4,dtype=np.float32);A4[:3,:]=A; B4=np.eye(4,dtype=np.float32);B4[:3,:]=B; return (A4@B4)[:3,:].astype(np.float32)
 NUSC_CAMERAS=['CAM_FRONT','CAM_FRONT_RIGHT','CAM_BACK_RIGHT','CAM_BACK','CAM_BACK_LEFT','CAM_FRONT_LEFT']
 def build_nusc_calib_multicam(nusc, tok, target_image_size=224, cameras=NUSC_CAMERAS):
     s=nusc.get('sample',tok); ld=nusc.get('sample_data',s['data']['LIDAR_TOP']); cl=nusc.get('calibrated_sensor',ld['calibrated_sensor_token'])
