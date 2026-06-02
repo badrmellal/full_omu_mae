@@ -17,7 +17,7 @@ Each scene is voxelized at 0.4 m into a 128×128×32 grid. Per-voxel features ar
 1. Per-voxel binary **occupancy** (BCE), and
 2. The masked **DINOv2 features** at occupied positions (MSE).
 
-OMU-MAE fills the empty cell of the cross-modal SSL design space — *masked reconstruction with a frozen VFM as target* — and is evaluated head-to-head against Occupancy-MAE, a re-implemented SLidR, and a no-mask (CleverDistiller-equivalent) baseline.
+OMU-MAE fills the empty cell of the cross-modal SSL design space  *masked reconstruction with a frozen VFM as target* — and is evaluated head-to-head against Occupancy-MAE, a re-implemented SLidR, and a no-mask (CleverDistiller-equivalent) baseline.
 
 | Target \ Objective | Distillation                         | Masked reconstruction       |
 |--------------------|--------------------------------------|-----------------------------|
@@ -92,7 +92,7 @@ The notebook trains and probes **five variants** in one run (`random` / `occmae`
 
 **Hardware:** runs on a single GPU (publication run: NVIDIA RTX PRO 6000); device-portable (CUDA bf16 / MPS fp32 / CPU fallback).
 
-1. Open `omumae_full_pipeline.ipynb` (Colab / RunPod / local). Set Kaggle creds via env vars (`KAGGLE_USERNAME`, `KAGGLE_KEY`) — **never hard-code credentials**.
+1. Open `omumae_full_pipeline.ipynb` (Colab / RunPod / local). Set Kaggle creds via env vars (`KAGGLE_USERNAME`, `KAGGLE_KEY`).
 2. Run the Setup cell (downloads KITTI + SemanticKITTI), then run all cells.
 3. Artifacts (JSONs + figures) collect into `results/`.
 
@@ -107,11 +107,10 @@ The notebook trains and probes **five variants** in one run (`random` / `occmae`
 
 ## Limitations
 
-1. **Single seed** point estimates, no error bars (the run is resumable; adding seeds is the main next step).
-2. Occupancy-MAE / SLidR / no-mask are faithful **re-implementations** in our dense 3D CNN framework, not the authors' original code.
-3. **Single dataset** (KITTI / SemanticKITTI); cross-dataset transfer (nuScenes, Waymo) is future work.
-4. **End-to-end fine-tuning** is future work (the frozen linear probe is the primary representation-quality measure here).
-5. The 0.4 m voxel grid is coarse for small classes (motorcycle/person/bicyclist ≈ 0 mIoU under all conditions).
+1. Occupancy-MAE / SLidR / no-mask are faithful **re-implementations** in our dense 3D CNN framework, not the authors' original code.
+2. **Single dataset** (KITTI / SemanticKITTI); cross-dataset transfer (nuScenes, Waymo) is future work.
+3. **End-to-end fine-tuning** is future work (the frozen linear probe is the primary representation-quality measure here).
+4. The 0.4 m voxel grid is coarse for small classes (motorcycle/person/bicyclist ≈ 0 mIoU under all conditions).
 
 ---
 
