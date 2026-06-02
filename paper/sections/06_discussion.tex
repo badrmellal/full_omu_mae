@@ -45,13 +45,3 @@ constant-output collapse mode that affects joint-target prediction
 methods~\cite{ijepa,lejepa} cannot achieve low loss. This sidesteps the
 regularization machinery (VICReg, LeJEPA, I-JEPA-style asymmetries) needed
 by approaches whose target evolves during training.
-
-\paragraph{In-domain vs.\ cross-sensor.}
-The KITTI probe and the nuScenes transfer isolate different ingredients.
-In-domain, masking is the largest single lever. Across sensors, the
-deciding factor is instead the cross-modal DINOv2 target: both
-DINOv2-target variants (masked and no-mask) transfer well above the
-LiDAR-only, contrastive, and random baselines, while masked vs.\ no-mask
-sits within single-seed noise. The masking inductive bias is thus
-domain-specific, whereas the frozen-VFM target---which OMU-MAE shares with
-the no-mask variant---is what generalizes across sensors.

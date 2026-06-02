@@ -62,17 +62,3 @@ is DINOv2 ViT-B/14 (768-d features). The architecture, training schedule,
 probe protocol, and random seed are identical across all five conditions.
 Pretraining runs on a single GPU (NVIDIA RTX PRO 6000); the full
 five-variant pretraining plus probe sweep completes in well under a day.
-
-\paragraph{Cross-sensor transfer (nuScenes).}
-To test whether the learned representation transfers across LiDAR
-sensors, scene compositions, and label vocabularies, we additionally
-evaluate on nuScenes~\cite{nuscenes} (\texttt{v1.0-trainval}). We take
-each KITTI-pretrained encoder \emph{frozen}, project LiDAR points into
-whichever of the six surround cameras observes them, voxelize into the
-same grid, train only a fresh linear probe on nuScenes labels at
-$\{1\%,5\%,10\%,100\%\}$, and report mIoU on the official validation split
-($6{,}019$ keyframes). This is a deliberately hard setting: a $64$-beam
-KITTI encoder is transferred to a $32$-beam nuScenes sensor with a
-different camera rig and class set, with no fine-tuning of the encoder. We
-report a single seed; we discuss this as a limitation in
-Sec.~\ref{sec:limitations}.

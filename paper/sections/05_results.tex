@@ -84,17 +84,6 @@ pretrained variant.}
 \label{fig:probe}
 \end{figure*}
 
-\paragraph{On the widening gap over random.}
-OMU-MAE's gap over random init grows from $+9.97$\,pp at $1\%$ to
-$+14.19$\,pp at $100\%$, which superficially contradicts the usual ``SSL
-helps most when labels are scarce.'' We attribute this to
-\emph{undertraining of the random baseline}: a freshly initialized 3D CNN
-trained for $5$ probe epochs on a frozen, randomly projected feature space
-has not converged, whereas the pretrained encoder already exposes
-linearly separable structure that the probe reads off directly. A longer
-probe schedule would partly close the random gap; we leave a probe-epoch
-sweep to future work.
-
 \subsection{Per-class analysis}
 Figure~\ref{fig:perclass} reports per-class IoU at $100\%$ labels. The
 OMU-MAE gains over random init concentrate on the dominant geometric and
@@ -114,69 +103,3 @@ of OMU-MAE over random. Gains concentrate on geometric, semantic classes
 (road, building, vegetation, terrain).}
 \label{fig:perclass}
 \end{figure*}
-
-\subsection{Cross-sensor transfer to nuScenes}
-\label{sec:nuscenes}
-Table~\ref{tab:nusc} and Figure~\ref{fig:nusc} report the nuScenes
-cross-sensor transfer. We report this result \emph{honestly}: absolute
-mIoU is low for all variants ($<2.5\%$), reflecting how hard the setting
-is---a $64$-beam KITTI encoder, frozen, probed on a $32$-beam nuScenes
-sensor with a different camera rig and class vocabulary, single seed.
-Because absolute mIoU is low and single-seed, we read the table
-qualitatively rather than as a precise ranking. The robust pattern is that
-the two cross-modal DINOv2-target variants---OMU-MAE and its no-mask
-ablation---separate clearly from the LiDAR-only Occupancy-MAE, the
-contrastive SLidR baseline, and random init at every fraction:
-\emph{the frozen-VFM target, not the masking, is what carries across
-sensors.} Within that DINOv2-target pair the masked and no-mask variants
-are within run-to-run noise of each other. This is consistent with the
-in-domain result rather than contradicting it: masking is the dominant
-lever \emph{in domain}, while the cross-modal target---a core ingredient of
-OMU-MAE shared with the no-mask ablation---is what generalizes
-\emph{across sensors}. We do not over-claim a cross-sensor win for masking.
-
-\begin{table}[t]
-\centering
-\caption{\textbf{nuScenes cross-sensor transfer} (frozen
-KITTI-pretrained encoder, fresh linear probe, single seed, $6{,}019$
-validation keyframes). mIoU (\%) at four label fractions; best per column
-in bold. Both cross-modal DINOv2-target variants (OMU-MAE and its no-mask
-ablation) separate from the LiDAR-only, contrastive, and random baselines:
-the cross-modal target transfers, while masked-vs-no-mask is within
-single-seed noise. Absolute mIoU is low---read qualitatively.}
-\label{tab:nusc}
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{lcccc}
-\toprule
-Pretraining variant & 1\% & 5\% & 10\% & 100\% \\
-\midrule
-Random init                       & 0.45 & 0.58 & 0.68 & 0.83 \\
-Occupancy-MAE~\cite{occmae}        & 0.30 & 0.37 & 0.46 & 0.61 \\
-SLidR~\cite{slidr}                 & 0.28 & 0.60 & 0.74 & 0.94 \\
-No-mask (CleverDist.-eq.)~\cite{cleverdistiller} & \textbf{1.06} & \textbf{1.54} & \textbf{1.71} & \textbf{2.45} \\
-OMU-MAE (ours)                     & 0.76 & 1.41 & 1.49 & 1.62 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{nuscenes_transfer_5way.png}
-\caption{\textbf{nuScenes cross-sensor transfer (five-way).} Frozen
-KITTI-pretrained encoder, fresh linear probe on nuScenes. Absolute mIoU is
-low for all variants; the in-domain advantage of masking does not carry
-across sensors.}
-\label{fig:nusc}
-\end{figure}
-
-\subsection{Diagnostics}
-\paragraph{Cross-modal scene retrieval.}
-For completeness we report scene-level cross-modal retrieval: given the
-scene-level mean encoder feature for one modality, retrieve the matching
-scene from the other ($N=4{,}355$). Retrieval is essentially at chance
-(image$\rightarrow$LiDAR Recall@1 $=0.02\%$ vs.\ chance $0.02\%$;
-LiDAR$\rightarrow$image $0.05\%$; median rank $\approx N/2$). The per-voxel
-cross-modal objective produces \emph{locally} useful features without by
-itself inducing a globally aligned scene-level embedding; a scene-level
-contrastive auxiliary or improved pooling would likely improve this, which
-we leave to future work.

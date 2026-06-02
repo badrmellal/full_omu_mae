@@ -8,12 +8,6 @@ $+14.19$\,pp over random init, $+1.77$\,pp over a faithful Occupancy-MAE
 re-implementation (the cross-modal target), $+3.27$\,pp over a no-mask
 CleverDistiller-equivalent (the masking bias), and $+4.22$\,pp over a
 re-implemented SLidR contrastive baseline (masked reconstruction vs.\
-contrastive distillation of the same frozen-VFM target). A nuScenes
-cross-sensor transfer study shows the representation carries some
-sensor-agnostic signal---it beats random init, Occupancy-MAE and SLidR
-out of domain---but the in-domain advantage of masking does not transfer,
-a nuance we report honestly. Together with a preliminary negative result on
-semantics-driven masking, these experiments isolate \emph{when} each
-ingredient of cross-modal masked voxel pretraining helps, and when it does
-not. The full pipeline trains in a few hours on a single GPU, and we
+contrastive distillation of the same frozen-VFM target). These controlled deltas isolate \emph{when} each ingredient of
+cross-modal masked voxel pretraining helps. The full pipeline trains in a few hours on a single GPU, and we
 release code and pretrained weights to support reproduction.

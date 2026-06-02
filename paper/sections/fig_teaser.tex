@@ -1,0 +1,57 @@
+% Figure 1 teaser: the 2D->3D cross-modal projection. Placed at the top of
+% the Introduction so it floats to page 1 (CVPR/SLidR-style teaser).
+\begin{figure*}[t]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize,>=Stealth,cap/.style={align=center,font=\footnotesize}]
+
+% ============ (a) 2D camera image + DINOv2 patch features ============
+\begin{scope}[shift={(0,0)}]
+  \foreach \x in {0,1,2,3,4}{\foreach \y in {0,1,2,3}{
+     \fill[gray!8]   (\x*0.42,\y*0.42) rectangle ++(0.42,0.42);
+     \draw[gray!45,line width=0.2pt] (\x*0.42,\y*0.42) rectangle ++(0.42,0.42);}}
+  \fill[blue!35]   (1.26,1.68) rectangle ++(0.42,0.42);
+  \fill[teal!45]   (1.68,1.68) rectangle ++(0.42,0.42);
+  \fill[orange!45] (1.26,1.26) rectangle ++(0.42,0.42);
+  \node[cap] at (1.05,-0.5) {(a) camera image\\frozen DINOv2 patches\\$16{\times}16{\times}768$};
+\end{scope}
+
+% ============ projection ============
+\node[cap] at (3.9,2.25) {camera--LiDAR\\projection $(\mathbf{P}_2,\mathbf{Tr})$};
+\draw[->,blue!55,thick]   (2.15,1.95) to[bend left=10] (5.05,1.60);
+\draw[->,teal!55,thick]   (2.15,1.82) to[bend left=4]  (5.35,1.35);
+\draw[->,orange!65,thick] (2.15,1.45) to[bend right=6] (5.20,1.05);
+
+% ============ (b) 3D per-voxel feature volume ============
+\begin{scope}[shift={(5.2,0.2)}]
+  \def\ddx{0.55}\def\ddy{0.32}
+  \foreach \x in {0,1,2}{\foreach \y in {0,1,2}{
+     \draw[gray!30,line width=0.2pt] (\x*0.5+\ddx,\y*0.5+\ddy) rectangle ++(0.5,0.5);}}
+  \foreach \p in {(0,0),(1.5,0),(0,1.5),(1.5,1.5)}{\draw[gray!35] \p -- ++(\ddx,\ddy);}
+  \foreach \x in {0,1,2}{\foreach \y in {0,1,2}{
+     \fill[white] (\x*0.5,\y*0.5) rectangle ++(0.5,0.5);
+     \draw[gray!55,line width=0.2pt] (\x*0.5,\y*0.5) rectangle ++(0.5,0.5);}}
+  \fill[blue!35]   (0.5,1.0) rectangle ++(0.5,0.5);
+  \fill[teal!45]   (1.0,1.0) rectangle ++(0.5,0.5);
+  \fill[orange!45] (0.5,0.5) rectangle ++(0.5,0.5);
+  \node[cap] at (0.75+\ddx/2,-0.7) {(b) per-voxel DINOv2\\feature volume\\$128{\times}128{\times}32$};
+\end{scope}
+
+% ============ (c) mask + MAE + reconstruct ============
+\draw[->,thick] (8.35,1.15) -- ++(0.8,0);
+\node[draw,rounded corners,fill=violet!12,align=center,minimum height=9mm] (mae) at (10.6,1.15)
+  {range-aware mask\\$\rho{=}0.85$ $+$ 3D CNN};
+\draw[->,thick] (mae.east) -- ++(0.6,0)
+  node[right,cap,anchor=west] {(c) reconstruct\\occupancy $+$ DINOv2\\at masked voxels};
+\end{tikzpicture}%
+}
+\caption{\textbf{OMU-MAE in one picture.} (a)~A frozen DINOv2 ViT-B/14 turns
+the camera image into a $16{\times}16$ grid of $768$-d patch features.
+(b)~These are projected through the camera--LiDAR calibration
+$(\mathbf{P}_2,\mathbf{Tr})$ to populate a per-voxel feature volume aligned with
+the LiDAR occupancy grid ($0.4$\,m, $128{\times}128{\times}32$). (c)~$85\%$ of
+voxels are masked and a 3D CNN reconstructs both occupancy and the DINOv2
+features at masked positions. The target encoder is frozen, so this
+$2\mathrm{D}\!\rightarrow\!3\mathrm{D}$ supervision cannot collapse.}
+\label{fig:teaser}
+\end{figure*}

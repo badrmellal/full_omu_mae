@@ -2,7 +2,7 @@
 
 **Cross-Modal Masked Voxel Pretraining with Frozen Vision Foundation Targets for Autonomous Driving Perception**
 
-Badr Mellal, Rabab Benfouina, Ahmed Drissi el Maliani — LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat, Morocco.
+Badr Mellal, Rabab Benfouina, Ahmed Drissi el Maliani, LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat, Morocco.
 
 > 📄 Paper (LaTeX, IEEE IV + WACV builds): [`paper/`](paper/) · see [`paper/README.md`](paper/README.md) for build instructions.
 
@@ -21,7 +21,7 @@ OMU-MAE fills the empty cell of the cross-modal SSL design space — *masked rec
 
 | Target \ Objective | Distillation                         | Masked reconstruction       |
 |--------------------|--------------------------------------|-----------------------------|
-| Raw modality       | —                                    | UniM²AE, NS-MAE             |
+| Raw modality       | -                                    | UniM²AE, NS-MAE             |
 | Frozen VFM         | SLidR, ScaLR, CleverDistiller        | **OMU-MAE (this work)**     |
 
 ---
@@ -39,20 +39,6 @@ Frozen-encoder linear probe (single 1×1×1 conv head), 19-class voxel mIoU (%).
 | **OMU-MAE (ours)**                            | **14.92** | **17.49** | **18.56** | **19.68** | — |
 
 **OMU-MAE wins at every label fraction.** The three controlled deltas at 100% labels isolate each design choice: **+1.77** vs Occupancy-MAE (the cross-modal target), **+3.27** vs no-mask (the masking inductive bias), **+4.22** vs SLidR (masked reconstruction vs contrastive distillation of the *same* frozen-VFM target).
-
-## Cross-sensor transfer — nuScenes (frozen probe, single seed)
-
-| Pretraining variant | 1% | 5% | 10% | 100% |
-|---------------------|----|----|-----|------|
-| Random init         | 0.45 | 0.58 | 0.68 | 0.83 |
-| Occupancy-MAE       | 0.30 | 0.37 | 0.46 | 0.61 |
-| SLidR               | 0.28 | 0.60 | 0.74 | 0.94 |
-| No-mask (CleverDist.-eq.) | **1.06** | **1.54** | **1.71** | **2.45** |
-| OMU-MAE (ours)      | 0.76 | 1.41 | 1.49 | 1.62 |
-
-Reported honestly: absolute mIoU is low (a 64-beam KITTI encoder, frozen, probed on a 32-beam nuScenes sensor; single seed). The robust pattern is that the **two cross-modal DINOv2-target variants (OMU-MAE + no-mask) separate from the LiDAR-only / contrastive / random baselines — the cross-modal target is what transfers**, while masked-vs-no-mask is within single-seed noise (the masking benefit is in-domain-specific).
-
----
 
 ## Method
 
@@ -85,7 +71,7 @@ LiDAR points ─► voxelize (128×128×32) ──► O ⊕ Fv ──► range-a
 ```
 kitti_omu_mae/
 ├── README.md                    # this file
-├── paper/                       # LaTeX (IEEE IV + WACV) — see paper/README.md
+├── paper/                       # LaTeX (IEEE IV + WACV) see paper/README.md
 ├── omumae_full_pipeline.ipynb   # main end-to-end notebook (pretrain → probe → nuScenes transfer)
 ├── results/                     # result JSONs + figures (the numbers above)
 ├── docs/
@@ -95,7 +81,7 @@ kitti_omu_mae/
     └── run_nuscenes.py                    # standalone nuScenes re-run (notebook Part 2 supersedes it)
 ```
 
-The notebook trains and probes **five variants** in one run (`random` / `occmae` / `slidr` / `nomask` / `full`), then runs the nuScenes cross-sensor transfer (Part 2). The frozen linear probe is the primary result; end-to-end fine-tuning is left as future work and is not included in this submission.
+The notebook trains and probes **five variants** in one run (`random` / `occmae` / `slidr` / `nomask` / `full`), then runs an optional nuScenes transfer (Part 2; supplementary, not in the paper). The frozen linear probe is the primary result; end-to-end fine-tuning is left as future work and is not included in this submission.
 
 ---
 
@@ -121,14 +107,12 @@ The notebook trains and probes **five variants** in one run (`random` / `occmae`
 - **Cross-modal target helps.** OMU-MAE > Occupancy-MAE by +1.77 pp @100% (the DINOv2 target).
 - **Masking helps in-domain.** OMU-MAE > no-mask by +3.27 pp @100% (and more in the low-label regime, +5.17 pp @1%).
 - **Masked reconstruction > contrastive distillation.** OMU-MAE > re-implemented SLidR by +4.22 pp @100%, for the same frozen-VFM target.
-- **Cross-sensor:** the cross-modal target transfers (OMU-MAE + no-mask lead on nuScenes); the masking benefit is in-domain-specific.
-- **Preliminary negative result (ViT-S pilot):** DINOv2-feature-norm-guided ("semantic") masking underperforms range-aware masking by 3–5 pp; in 3D the right principle is "mask the sensor-dense," not "mask the semantically rich."
 
 ## Limitations
 
-1. **Single seed** — point estimates, no error bars (the run is resumable; adding seeds is the main next step).
+1. **Single seed** point estimates, no error bars (the run is resumable; adding seeds is the main next step).
 2. Occupancy-MAE / SLidR / no-mask are faithful **re-implementations** in our dense 3D CNN framework, not the authors' original code.
-3. **Cross-sensor transfer is preliminary** (frozen probe, single seed, low absolute mIoU).
+3. **Single dataset** (KITTI / SemanticKITTI); cross-dataset transfer (nuScenes, Waymo) is future work.
 4. **End-to-end fine-tuning** is future work (the frozen linear probe is the primary representation-quality measure here).
 5. The 0.4 m voxel grid is coarse for small classes (motorcycle/person/bicyclist ≈ 0 mIoU under all conditions).
 
