@@ -22,40 +22,21 @@ regularization machinery (VICReg, LeJEPA, I-JEPA-style asymmetries) that an
 evolving target requires, and lets a single consumer GPU train the pipeline
 in a few hours.
 
-\paragraph{Design choices and hyperparameters.}
-Our configuration is driven by one hard constraint---the cross-modal input
-carries a $768$-d DINOv2 vector per occupied voxel, so the dense feature
-volume grows cubically with resolution---and otherwise follows
-masked-image-modeling practice.
-\emph{Voxel grid ($0.4$\,m, $128{\times}128{\times}32$).} $0.4$\,m is a
-deliberate fidelity/compute trade-off: at $0.1$\,m the per-scene feature
-volume reaches tens of gigabytes and at $0.2$\,m the cross-modal variants
-already exhaust a single GPU, whereas $0.4$\,m keeps the full five-variant
-pipeline on one workstation GPU while preserving road-scene geometry. The
-cost is coarse small-object resolution (Sec.~\ref{sec:limitations}).
-\emph{Encoder ($d_{\text{feat}}{=}64$, bottleneck $C{=}256$;
-$16{,}384$ points/scene).} A compact 3D CNN keeps memory in budget;
-$16{,}384$ subsampled points densely populate the grid while bounding the
-per-point projection cost.
-\emph{Masking ($\rho{=}0.85$, range-aware, $\alpha{=}0.5$).} LiDAR voxel
-grids are highly redundant (large contiguous occupied/empty regions), so a
-high mask ratio---as in MAE~\cite{mae} and Occupancy-MAE~\cite{occmae}---is
-needed to make reconstruction non-trivial. Masking is range-aware because
-dense near-field voxels, where the encoder can actually learn structure,
-should be hidden more often than sparse far-field returns; $\alpha{=}0.5$
-is a moderate distance decay.
-\emph{Target encoder (DINOv2 ViT-B/14, $768$-d, $224^2$ input).} ViT-B
-gives stronger dense features than ViT-S at still-modest cost and is frozen
-with public \texttt{torch.hub} weights for reproducibility.
-\emph{Loss ($\lambda_{\text{occ}}{=}1.0$, $\lambda_{\text{feat}}{=}0.5$;
-focal $\alpha{=}0.25,\gamma{=}2.0$).} The feature MSE is down-weighted so
-the harder $768$-d regression does not dominate and destabilize early
-training; the focal occupancy term handles the strong empty-vs-occupied
-voxel imbalance.
-\emph{Optimization (AdamW, lr $5{\times}10^{-4}$, weight decay $0.05$,
-gradient clip $1.0$, batch $4$, $20{,}000$ steps).} These are standard
-MAE-style settings; batch $4$ is the memory ceiling at $0.4$\,m with the
-$768$-d feature volume, and $20$k steps is where the total loss and
-masked-occupancy accuracy ($>97\%$) plateau. Architecture, schedule, and
+\paragraph{On the non-obvious design choices.}
+Most settings are standard and listed in Sec.~\ref{sec:setup}; three choices
+are specific to this problem and worth motivating. \emph{Voxel resolution.}
+$0.4$\,m is dictated by the cross-modal input: a $768$-d DINOv2 vector per
+occupied voxel makes the dense feature volume grow cubically with
+resolution, so $0.1$\,m reaches tens of gigabytes per scene and $0.2$\,m
+already exhausts a single GPU; $0.4$\,m keeps the full five-variant pipeline
+on one workstation GPU, at the cost of coarse small-object resolution
+(Sec.~\ref{sec:limitations}). \emph{Masking.} The high ratio
+($\rho{=}0.85$) follows MAE~\cite{mae} and Occupancy-MAE~\cite{occmae} and is
+necessary because LiDAR voxel grids are highly redundant; range-aware
+masking hides the dense near-field---where structure is learnable---more
+than sparse far-field returns. \emph{Loss balancing.} The feature term is
+down-weighted ($\lambda_{\text{feat}}{=}0.5$) so the hard $768$-d regression
+does not overwhelm occupancy early in training, and a focal occupancy loss
+counters the strong empty-vs-occupied imbalance. Architecture, schedule, and
 seed are identical across all five conditions, so every reported difference
 is attributable to the pretraining objective alone.
