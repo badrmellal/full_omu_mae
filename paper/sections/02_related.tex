@@ -1,69 +1,41 @@
 \section{Related Work}
 
 \paragraph{Masked autoencoding for LiDAR.}
-The MAE paradigm~\cite{mae}---high-fraction masking of input patches with
-a reconstruction objective---was extended to LiDAR by
-Occupancy-MAE~\cite{occmae} and Voxel/LiDAR-MAE~\cite{hess2023lidar}.
-Occupancy-MAE introduced range-aware masking (higher mask probability at
-closer ranges, where LiDAR is denser) and predicts binary voxel occupancy
-at masked positions. MAELi~\cite{maeli} scales these ideas to large LiDAR
-sequences. OMU-MAE follows Occupancy-MAE's range-aware schedule but
-\emph{adds} a second prediction target at masked positions: a
-$768$-dimensional feature vector matching the frozen DINOv2 patch feature
-projected from the paired camera image. The single-modality occupancy
-reconstruction of Occupancy-MAE and the cross-modal feature
-reconstruction of OMU-MAE are complementary, and we use both losses
-jointly.
+The MAE paradigm~\cite{mae} was extended to LiDAR by
+Occupancy-MAE~\cite{occmae} and Voxel/LiDAR-MAE~\cite{hess2023lidar}, with
+MAELi~\cite{maeli} scaling it to large sequences. Occupancy-MAE introduced
+range-aware masking and reconstructs binary voxel occupancy. OMU-MAE keeps
+its range-aware schedule but \emph{adds} a second target at masked
+positions---a $768$-d vector matching the frozen DINOv2 patch feature
+projected from the paired image---and trains both losses jointly.
 
 \paragraph{Multi-modal masked autoencoders.}
-UniM\textsuperscript{2}AE~\cite{unim2ae} is the closest published
-multi-modal MAE for autonomous driving. It \emph{jointly} trains both the
-camera and LiDAR encoders, masks tokens in both modalities, and
-reconstructs both modalities back to their \emph{raw} representations
-through a Multi-modal 3D Interaction Module that exchanges features
-between LiDAR and camera volumes via back-projection. OMU-MAE differs in
-three ways: (i)~the camera encoder is \emph{frozen} (DINOv2) and never
-receives gradient; (ii)~the cross-modal target is the \emph{frozen DINOv2
-feature volume}, not raw pixels; and (iii)~there is no interaction module
-or back-projection, only direct concatenation of the projected DINOv2
-features into the voxel input. The trade-off is intentional:
-UniM\textsuperscript{2}AE's joint training and interaction module are more
-expressive but more compute-heavy. NS-MAE~\cite{nsmae} is a different
-multi-modal MAE that reconstructs raw RGB pixels and raw LiDAR points
-through a NeRF-style volumetric rendering decoder; OMU-MAE predicts a
-fixed-grid voxel feature volume directly and does not use volumetric
-rendering.
+UniM\textsuperscript{2}AE~\cite{unim2ae} jointly trains both modality
+encoders and reconstructs \emph{raw} pixels and LiDAR through a 3D
+interaction module; NS-MAE~\cite{nsmae} reconstructs raw observations via
+NeRF-style volumetric rendering. OMU-MAE differs on three axes: the image
+encoder is \emph{frozen}, the cross-modal target is the frozen DINOv2
+\emph{feature} volume (not raw pixels), and there is no interaction module
+or back-projection---only direct concatenation into the voxel input. The
+trade-off is intentional: less expressive, but it trains in a few hours on
+a single GPU.
 
 \paragraph{Vision-foundation-model distillation to LiDAR.}
 SLidR~\cite{slidr}, ScaLR~\cite{scalr} and SuperFlow++~\cite{superflow}
-distill features from a frozen image network into LiDAR superpoint
-features through InfoNCE-style contrastive matching at sparse superpoint
-resolution (typically $\sim$50 superpoints per scan).
-CleverDistiller~\cite{cleverdistiller}, the most recent and closest,
-replaces InfoNCE with a direct feature-similarity loss through an MLP
-projection head and adds an auxiliary occupancy prediction task. The
-combination of a frozen VFM target $+$ occupancy prediction is shared with
-OMU-MAE. \emph{The differentiator is masked reconstruction.}
-CleverDistiller distills VFM features at all 3D positions without masking;
-OMU-MAE zeros out $85\%$ of voxel features and recovers them, forcing the
-encoder to inpaint missing semantic context from surrounding visible
-voxels. To make this comparison concrete rather than rhetorical, we
-re-implement both a contrastive (SLidR) and a no-mask distillation
-(CleverDistiller-equivalent) variant inside our framework and compare
-head-to-head under an identical protocol (Sec.~\ref{sec:setup}).
+distill frozen-image features into LiDAR superpoints via InfoNCE at sparse
+superpoint resolution; CleverDistiller~\cite{cleverdistiller} replaces
+InfoNCE with a direct feature-similarity loss plus an occupancy auxiliary.
+The frozen-VFM target $+$ occupancy task is shared with OMU-MAE; the
+differentiator is \emph{masked reconstruction}. To make this comparison
+concrete we re-implement both a contrastive (SLidR) and a no-mask
+distillation (CleverDistiller-equivalent) variant inside our framework and
+compare under an identical protocol (Sec.~\ref{sec:setup}).
 
-\paragraph{Joint-embedding predictive architectures.}
+\paragraph{JEPA and dense vision features.}
 JEPA-family methods~\cite{ijepa,vjepa,lejepa,adljepa} predict latent
-representations of masked targets rather than reconstructing raw pixels or
-features. Both target and predictor evolve during training, which
-empirically requires careful regularization (VICReg~\cite{vicreg},
-LeJEPA~\cite{lejepa}) to avoid representational collapse. We deliberately
-avoid this regime by using a frozen target that cannot co-adapt to the
-predictor.
-
-\paragraph{Dense vision features.}
-DINO~\cite{dino}, DINOv2~\cite{dinov2} and DINOv3~\cite{dinov3} produce
-dense per-patch features with strong emergent semantics, increasingly used
-as a stable representation source by downstream methods. We use DINOv2
-ViT-B/14 in this work for the quality of its dense features and the public
-availability of weights via \texttt{torch.hub}.
+representations of masked targets, but their co-evolving target requires
+careful regularization (VICReg~\cite{vicreg}) to avoid collapse; we
+deliberately sidestep this with a frozen target. We use
+DINOv2~\cite{dino,dinov2,dinov3} ViT-B/14 as that target for the quality of
+its dense features and the public availability of weights via
+\texttt{torch.hub}.

@@ -85,21 +85,21 @@ pretrained variant.}
 \end{figure*}
 
 \subsection{Per-class analysis}
-Figure~\ref{fig:perclass} reports per-class IoU at $100\%$ labels. The
-OMU-MAE gains over random init concentrate on the dominant geometric and
-semantic classes: building, sidewalk, road, car, terrain, vegetation,
-fence and pole. Small or rare classes (motorcyclist, bicyclist, person,
-bicycle, motorcycle) remain near-zero IoU under \emph{all} conditions. The
-probe protocol, with $0.4$\,m voxelization that collapses small objects to
-$1$--$2$ voxels and a single linear classifier, cannot recover their
-fine-grained semantics regardless of the pretraining recipe.
+Per-class IoU at $100\%$ labels concentrates the OMU-MAE gains over random
+init on the dominant geometric and semantic classes (building, sidewalk,
+road, car, terrain, vegetation, fence, pole). Small or rare classes
+(motorcyclist, bicyclist, person, bicycle, motorcycle) remain near-zero IoU
+under \emph{all} conditions: at $0.4$\,m a small object spans only $1$--$2$
+voxels, so a single linear classifier cannot recover its fine-grained
+semantics regardless of the pretraining recipe.
 
+\ifextrafigs
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{probe_per_class_5way.png}
-\caption{\textbf{Per-class IoU at $100\%$ labels.} Left: per-class IoU
-(\%); classes sorted by OMU-MAE IoU. Right: per-class $\Delta$ IoU (pp)
-of OMU-MAE over random. Gains concentrate on geometric, semantic classes
-(road, building, vegetation, terrain).}
+\caption{\textbf{Per-class IoU at $100\%$ labels.} Left: per-class IoU (\%),
+classes sorted by OMU-MAE IoU. Right: per-class $\Delta$ IoU (pp) of OMU-MAE
+over random; gains concentrate on the geometric, semantic classes.}
 \label{fig:perclass}
 \end{figure*}
+\fi
