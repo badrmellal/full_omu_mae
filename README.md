@@ -4,8 +4,6 @@
 
 Badr Mellal, Rabab Benfouina, Ahmed Drissi el Maliani, LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat, Morocco.
 
-> 📄 Paper (LaTeX, IEEE IV + WACV builds): [`paper/`](paper/) · see [`paper/README.md`](paper/README.md) for build instructions.
-
 ---
 
 ## Overview
@@ -71,11 +69,9 @@ LiDAR points ─► voxelize (128×128×32) ──► O ⊕ Fv ──► range-a
 ```
 kitti_omu_mae/
 ├── README.md                    # this file
-├── paper/                       # LaTeX (IEEE IV + WACV) see paper/README.md
 ├── omumae_full_pipeline.ipynb   # main end-to-end notebook (KITTI: pretrain → 5-way linear probe)
 ├── results/                     # result JSONs + figures (the numbers above)
-└── legacy/
-    └── kitti_pretrain_omumae_full.ipynb   # earlier KITTI-only notebook (superseded)
+
 ```
 
 The notebook trains and probes **five variants** in one run (`random` / `occmae` / `slidr` / `nomask` / `full`). The frozen linear probe is the primary result; end-to-end fine-tuning is left as future work and is not included in this submission.
