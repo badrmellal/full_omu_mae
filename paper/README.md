@@ -55,28 +55,23 @@ main document → Recompile. `IEEEtran.cls`/`.bst` ship with Overleaf.
   submission.** Flip to `\anonfalse` (and WACV `[review]`→`[final]`) for the
   camera-ready / arXiv version with author names + the GitHub link.
 - `\extrafigstrue` / `\extrafigsfalse` — optional figures (pretraining
-  dynamics, reconstruction, confusion matrices). **WACV = on, IEEE = off**
+  dynamics, reconstruction). **WACV = on, IEEE = off**
   (defaults set) to respect the 6 vs 8 page budgets. If WACV runs over 8 pp,
   set it `false`; if you still overflow, the per-class figure (`fig:perclass`)
   is the next safe cut.
 
 ## Figures
-Used: `fig_pipeline` (TikZ), `probe_comparison_5way`, `probe_per_class_5way`,
-`nuscenes_transfer_5way` (always); `loss_curves`, `reconstruction_full`,
-`probe_confusion_4way` (only when `\extrafigs`). Also copied and available if
-you want them: `qualitative_example`, `retrieval_full`.
+Used: `fig_teaser` (PNG, page 1; regenerate via `figures/make_teaser.py`),
+`fig_pipeline` (TikZ), `probe_comparison_5way`, `probe_per_class_5way`
+(always); `loss_curves`, `reconstruction_full` (only when `\extrafigs`).
+Also available: `qualitative_example`.
 
 ## Numbers: what's real vs. what to fill
 - **Real (from your RunPod run, ViT-B/14, single seed):** the linear-probe
-  table (`tab:probe`), the nuScenes transfer table (`tab:nusc`), the
-  retrieval diagnostic numbers, all per-class statements. These match
-  `results/final_results.json` + `nuscenes_transfer_results.json`.
-- **Qualitative only:** §5.1 dynamics prose ("converges above 97%…"). If you
-  keep §5.1, drop the exact loss values from your training logs into the
-  caption/text; I avoided inventing precise curve values for the ViT-B run.
-- **Pilot, flagged:** the semantics-driven-masking negative result
-  (Limitations §6) used the older **ViT-S/14** backbone. It's written as a
-  pilot; re-run at ViT-B/14 before promoting it to a table.
+  table (`tab:probe`) and all per-class statements; these match
+  `results/final_results.json`.
+- **Qualitative only:** the §5.1 dynamics prose. If you keep §5.1, drop the
+  exact loss values from your training logs into the caption.
 
 ## Before you submit
 1. **Rotate the credentials** you pasted in chat (Kaggle key + token,
@@ -84,8 +79,7 @@ you want them: `qualitative_example`, `retrieval_full`.
 2. Confirm the **IV 2027** page limit + double-blind policy on the official
    CFP when it posts (2027 page hasn't been finalized; we used IV's standard
    6 pp / double-blind).
-3. If compute allows, add **seeds 1–2** (the run is resumable) so the small
-   in-domain deltas and the nuScenes numbers get error bars — the single seed
-   is the #1 reviewer target.
+3. If compute allows, add **seeds 1–2** (resumable) so the small in-domain
+   deltas get error bars — the single seed is the #1 reviewer target.
 4. Camera-ready: `\anonfalse`, restore the GitHub link, add acknowledgments.
 ```

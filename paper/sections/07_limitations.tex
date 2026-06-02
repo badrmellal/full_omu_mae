@@ -26,15 +26,14 @@ were not re-implemented.
 \paragraph{(3) Single dataset.}
 Our experiments are limited to KITTI / SemanticKITTI. Whether the gains
 transfer across LiDAR sensors, scene compositions, and label vocabularies
-(e.g.\ nuScenes or Waymo Open) is left to future work.
+(e.g.\ nuScenes~\cite{nuscenes} or Waymo Open~\cite{waymo}) is left to future work.
 
 \paragraph{(4) End-to-end fine-tuning.}
 We evaluate representation quality with the frozen linear probe, the
 standard protocol for this purpose; the low-label-fraction probe results
 ($14.92\%$ mIoU at $1\%$ labels, $+9.97$\,pp over random) already speak to
-label efficiency. Full end-to-end fine-tuning of the encoder---together
-with a fine-tuned cross-sensor transfer---is a natural extension that we
-leave to future work.
+label efficiency. Full end-to-end fine-tuning of the encoder is a natural extension that
+we leave to future work.
 
 \paragraph{(5) Voxel resolution and probe depth.}
 The $0.4$\,m grid is coarse for small classes (motorcycle, person,

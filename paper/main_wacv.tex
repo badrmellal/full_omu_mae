@@ -13,10 +13,11 @@
 % =====================================================================
 \documentclass[10pt,twocolumn,letterpaper]{article}
 
-\usepackage[review]{wacv}      % <-- use [final] for camera-ready
+\usepackage[final]{wacv}       % named build (shows authors). Use [review] for the double-blind submission.
 
-% ---- double-blind switch (keep in sync with the class option above) -
-\newif\ifanon \anontrue
+% ---- named build for the defense (\anonfalse + [final] above).
+%      For the double-blind submission: \anontrue + [review].
+\newif\ifanon \anonfalse
 % ---- optional figures (WACV 8 pp: ON; turn OFF if you run over) -----
 \newif\ifextrafigs \extrafigstrue
 % --------------------------------------------------------------------

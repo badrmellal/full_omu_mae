@@ -1,13 +1,5 @@
 \section{Discussion}
 
-\paragraph{What does the linear-probe gap measure?}
-The probe is a single $1\times1\times1$ convolution with no nonlinearity.
-Any non-trivial mIoU it achieves must originate from features the encoder
-already provides in linearly separable form. A $2$--$3\times$ improvement
-over random init at every label fraction indicates that OMU-MAE places a
-substantial portion of supervision-relevant variance into the linear span
-of its bottleneck.
-
 \paragraph{What does the cross-modal target buy?}
 Comparing OMU-MAE against the Occupancy-MAE baseline (truly LiDAR-only, no
 DINOv2 input or feature head; otherwise identical architecture, masking,

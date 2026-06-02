@@ -72,22 +72,19 @@ LiDAR points ─► voxelize (128×128×32) ──► O ⊕ Fv ──► range-a
 kitti_omu_mae/
 ├── README.md                    # this file
 ├── paper/                       # LaTeX (IEEE IV + WACV) see paper/README.md
-├── omumae_full_pipeline.ipynb   # main end-to-end notebook (pretrain → probe → nuScenes transfer)
+├── omumae_full_pipeline.ipynb   # main end-to-end notebook (KITTI: pretrain → 5-way linear probe)
 ├── results/                     # result JSONs + figures (the numbers above)
-├── docs/
-│   └── README_RUN.md            # detailed cloud-GPU run guide
 └── legacy/
-    ├── kitti_pretrain_omumae_full.ipynb   # earlier KITTI-only notebook (superseded)
-    └── run_nuscenes.py                    # standalone nuScenes re-run (notebook Part 2 supersedes it)
+    └── kitti_pretrain_omumae_full.ipynb   # earlier KITTI-only notebook (superseded)
 ```
 
-The notebook trains and probes **five variants** in one run (`random` / `occmae` / `slidr` / `nomask` / `full`), then runs an optional nuScenes transfer (Part 2; supplementary, not in the paper). The frozen linear probe is the primary result; end-to-end fine-tuning is left as future work and is not included in this submission.
+The notebook trains and probes **five variants** in one run (`random` / `occmae` / `slidr` / `nomask` / `full`). The frozen linear probe is the primary result; end-to-end fine-tuning is left as future work and is not included in this submission.
 
 ---
 
 ## Setup & reproduce
 
-**Data (Kaggle):** `hocop1/kitti-odometry` (left-camera + Velodyne + calib) and `luischavarriazamora/semantic-kitti` (per-point labels). nuScenes (`v1.0-trainval`) needs a nuScenes account.
+**Data (Kaggle):** `hocop1/kitti-odometry` (left-camera + Velodyne + calib) and `luischavarriazamora/semantic-kitti` (per-point labels).
 
 **Backbone:** frozen DINOv2 ViT-B/14 (768-d) via `torch.hub` (config in cell 7).
 
@@ -97,7 +94,7 @@ The notebook trains and probes **five variants** in one run (`random` / `occmae`
 
 1. Open `omumae_full_pipeline.ipynb` (Colab / RunPod / local). Set Kaggle creds via env vars (`KAGGLE_USERNAME`, `KAGGLE_KEY`) — **never hard-code credentials**.
 2. Run the Setup cell (downloads KITTI + SemanticKITTI), then run all cells.
-3. Artifacts (JSONs + figures) collect into `results/`. See `docs/README_RUN.md` for the detailed cloud-GPU run guide.
+3. Artifacts (JSONs + figures) collect into `results/`.
 
 ---
 
