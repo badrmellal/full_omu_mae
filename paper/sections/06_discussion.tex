@@ -1,39 +1,61 @@
 \section{Discussion}
 
-\paragraph{What does the cross-modal target buy?}
-Comparing OMU-MAE against the Occupancy-MAE baseline (truly LiDAR-only, no
-DINOv2 input or feature head; otherwise identical architecture, masking,
-and probe) isolates the cross-modal DINOv2 supervision. OMU-MAE improves
-by $+1.77$\,pp at $100\%$ labels and by $+1.0$ to $+1.8$\,pp consistently
-across fractions. The frozen-VFM target adds a modest but reliable
-semantic signal on top of pure geometric occupancy reconstruction.
-
-\paragraph{What does masking buy?}
-Comparing OMU-MAE against the no-mask variant (full cross-modal input but
-$\rho=0$, functionally a CleverDistiller-equivalent) isolates the masking
-inductive bias. Masking helps by $+3.27$\,pp at $100\%$ and \emph{more} in
-the low-label regime ($+5.17$\,pp at $1\%$): forcing the encoder to inpaint
-missing voxel context from surrounding visible voxels yields features that
-are more useful precisely when downstream labels are scarce.
-
-\paragraph{Masked reconstruction vs.\ contrastive distillation.}
+\paragraph{Why masked reconstruction rather than contrastive distillation?}
 The head-to-head against the SLidR re-implementation is the most direct
-test of our central claim. Both consume the \emph{same} frozen DINOv2
-target; they differ only in objective (masked feature reconstruction in a
-dense voxel grid vs.\ InfoNCE contrastive matching at sparse superpoint
-resolution). OMU-MAE wins by $+2.52$ to $+4.22$\,pp, with the gap growing
-as labels increase. Notably, in our dense-voxel probe the SLidR baseline
-($15.46\%$) is also \emph{below} the LiDAR-only Occupancy-MAE
-($17.91\%$): a dense masked-occupancy objective outperforms sparse
-contrastive VFM distillation under this protocol. We read this as evidence
-that dense, per-voxel reconstruction targets suit a dense voxel encoder
-better than sparse superpoint-level contrastive objectives, rather than as
-a claim that contrastive distillation is weak in general (SLidR still beats
-random init by $+9.96$\,pp).
+test of our central design choice. Both consume the \emph{same} frozen
+DINOv2 target and differ only in objective---masked feature reconstruction
+in a dense voxel grid vs.\ InfoNCE contrastive matching at sparse
+superpoint resolution. OMU-MAE wins by $+2.52$ to $+4.22$\,pp, the gap
+growing with labels. In our dense-voxel probe the SLidR baseline
+($15.46\%$) even falls \emph{below} the LiDAR-only Occupancy-MAE
+($17.91\%$): a dense per-voxel reconstruction target suits a dense voxel
+encoder better than a sparse superpoint-level contrastive objective. We do
+not read this as contrastive distillation being weak in general---SLidR
+still beats random init by $+9.96$\,pp---but as evidence that the objective
+should match the spatial granularity of the backbone.
 
 \paragraph{Why a frozen DINOv2 target?}
 A frozen target cannot co-adapt to the predictor, so the trivial
 constant-output collapse mode that affects joint-target prediction
 methods~\cite{ijepa,lejepa} cannot achieve low loss. This sidesteps the
-regularization machinery (VICReg, LeJEPA, I-JEPA-style asymmetries) needed
-by approaches whose target evolves during training.
+regularization machinery (VICReg, LeJEPA, I-JEPA-style asymmetries) that an
+evolving target requires, and lets a single consumer GPU train the pipeline
+in a few hours.
+
+\paragraph{Design choices and hyperparameters.}
+Our configuration is driven by one hard constraint---the cross-modal input
+carries a $768$-d DINOv2 vector per occupied voxel, so the dense feature
+volume grows cubically with resolution---and otherwise follows
+masked-image-modeling practice.
+\emph{Voxel grid ($0.4$\,m, $128{\times}128{\times}32$).} $0.4$\,m is a
+deliberate fidelity/compute trade-off: at $0.1$\,m the per-scene feature
+volume reaches tens of gigabytes and at $0.2$\,m the cross-modal variants
+already exhaust a single GPU, whereas $0.4$\,m keeps the full five-variant
+pipeline on one workstation GPU while preserving road-scene geometry. The
+cost is coarse small-object resolution (Sec.~\ref{sec:limitations}).
+\emph{Encoder ($d_{\text{feat}}{=}64$, bottleneck $C{=}256$;
+$16{,}384$ points/scene).} A compact 3D CNN keeps memory in budget;
+$16{,}384$ subsampled points densely populate the grid while bounding the
+per-point projection cost.
+\emph{Masking ($\rho{=}0.85$, range-aware, $\alpha{=}0.5$).} LiDAR voxel
+grids are highly redundant (large contiguous occupied/empty regions), so a
+high mask ratio---as in MAE~\cite{mae} and Occupancy-MAE~\cite{occmae}---is
+needed to make reconstruction non-trivial. Masking is range-aware because
+dense near-field voxels, where the encoder can actually learn structure,
+should be hidden more often than sparse far-field returns; $\alpha{=}0.5$
+is a moderate distance decay.
+\emph{Target encoder (DINOv2 ViT-B/14, $768$-d, $224^2$ input).} ViT-B
+gives stronger dense features than ViT-S at still-modest cost and is frozen
+with public \texttt{torch.hub} weights for reproducibility.
+\emph{Loss ($\lambda_{\text{occ}}{=}1.0$, $\lambda_{\text{feat}}{=}0.5$;
+focal $\alpha{=}0.25,\gamma{=}2.0$).} The feature MSE is down-weighted so
+the harder $768$-d regression does not dominate and destabilize early
+training; the focal occupancy term handles the strong empty-vs-occupied
+voxel imbalance.
+\emph{Optimization (AdamW, lr $5{\times}10^{-4}$, weight decay $0.05$,
+gradient clip $1.0$, batch $4$, $20{,}000$ steps).} These are standard
+MAE-style settings; batch $4$ is the memory ceiling at $0.4$\,m with the
+$768$-d feature volume, and $20$k steps is where the total loss and
+masked-occupancy accuracy ($>97\%$) plateau. Architecture, schedule, and
+seed are identical across all five conditions, so every reported difference
+is attributable to the pretraining objective alone.

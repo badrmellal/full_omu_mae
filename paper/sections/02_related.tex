@@ -1,22 +1,3 @@
-\begin{table*}[t]
-\centering
-\caption{\textbf{Cross-modal SSL design space for autonomous driving.}
-Methods are indexed by training objective (distillation vs.\ masked
-reconstruction) and target source (raw modality vs.\ frozen vision
-foundation model). The bottom-right cell---masked reconstruction with a
-frozen VFM as target---is the empty cell that motivates OMU-MAE.}
-\label{tab:design}
-\renewcommand{\arraystretch}{1.25}
-\begin{tabular}{l|c|c}
-\toprule
-\textbf{Target $\backslash$ Objective} & \textbf{Distillation} & \textbf{Masked reconstruction}\\
-\midrule
-\textbf{Raw modality} & -- & UniM\textsuperscript{2}AE~\cite{unim2ae}, NS-MAE~\cite{nsmae}\\
-\textbf{Frozen VFM}   & SLidR~\cite{slidr}, ScaLR~\cite{scalr}, CleverDistiller~\cite{cleverdistiller} & \textbf{this work (OMU-MAE)}\\
-\bottomrule
-\end{tabular}
-\end{table*}
-
 \section{Related Work}
 
 \paragraph{Masked autoencoding for LiDAR.}
