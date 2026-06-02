@@ -1,0 +1,80 @@
+\section{Method}
+\label{sec:method}
+
+\input{sections/fig_pipeline}
+
+Figure~\ref{fig:pipeline} gives the overall OMU-MAE pretraining pipeline.
+The image branch feeds a frozen DINOv2 ViT-B/14 encoder, whose per-patch
+features are projected through the camera--LiDAR calibration onto the
+LiDAR voxel grid. The fused voxel input is masked, encoded by a 3D CNN,
+and decoded back to two prediction heads, one for occupancy and one for
+DINOv2 features, each evaluated at masked voxel positions only.
+
+\subsection{Cross-modal voxel input}
+For each scene we are given a paired RGB image
+$\mathbf{I}\in\mathbb{R}^{3\times H\times W}$ and LiDAR point cloud
+$\mathcal{P}=\{\mathbf{p}_i\in\mathbb{R}^4\}_{i=1}^{N}$ in the LiDAR
+coordinate frame. KITTI calibration provides the projection matrices
+$\mathbf{P}_2$ and $\mathbf{Tr}$ that take a LiDAR point into the
+rectified left camera. We voxelize the scene over a fixed metric volume
+centered on the ego-vehicle ($25.6\,\text{m}\times51.2\,\text{m}\times6.8\,\text{m}$)
+at $0.4$\,m resolution, yielding a grid of size
+$128\times128\times32$. Two voxel-level signals are computed:
+\begin{itemize}
+\item For occupancy, a binary tensor
+$\mathbf{O}\in\{0,1\}^{X\times Y\times Z}$ marking voxels that contain at
+least one LiDAR point.
+\item For the cross-modal feature, a frozen DINOv2 ViT-B/14
+encoder~\cite{dinov2} processes $\mathbf{I}$ at $224\times224$ resolution
+to produce a $16\times16$ patch-feature grid
+$\mathbf{F}\in\mathbb{R}^{16\times16\times768}$. For each LiDAR point we
+project to image coordinates, identify the enclosing patch, and aggregate
+(mean-pool) DINOv2 features into the corresponding voxel. The result is a
+per-voxel feature volume $\mathbf{F}^v\in\mathbb{R}^{768\times X\times Y\times Z}$.
+\end{itemize}
+Voxels not visible from the camera (e.g.\ behind the vehicle, outside the
+image FoV) receive zero features; this visibility mask is implicit in the
+input and reproduced at decoding.
+
+\subsection{Range-aware masking}
+Following Occupancy-MAE~\cite{occmae}, voxels nearer the ego-vehicle
+(where LiDAR is dense and semantic content is richest) are masked at a
+higher rate. For voxel $(x,y,z)$ with metric distance $d$ from the
+ego-origin we set the per-voxel mask probability
+$\Pr[m_{xyz}{=}1]=\rho\cdot(1+\alpha d)^{-1}$ with global mask ratio
+$\rho=0.85$ and decay $\alpha=0.5$. Both the occupancy and feature
+channels are zeroed at masked locations and concatenated with a binary
+mask indicator, giving an input tensor of shape
+$(1+768+1)\times X\times Y\times Z$.
+
+\subsection{Encoder, decoder architecture}
+The encoder $g_\theta$ is a 4-stage 3D CNN (Conv3D $+$ GroupNorm $+$ GELU
+blocks with strided downsampling) producing a bottleneck feature volume
+$\mathbf{H}\in\mathbb{R}^{C\times X'\times Y'\times Z'}$ at $1/4$
+resolution and $C=4\,d_{\text{feat}}=256$ channels, where
+$d_{\text{feat}}=64$. The decoder mirrors the encoder via
+trilinear-upsample $+$ Conv3D blocks. Two heads at the decoder output emit
+(a)~a per-voxel occupancy logit and (b)~a per-voxel feature prediction in
+$\mathbb{R}^{768}$.
+
+\subsection{Dual reconstruction loss}
+Let $\hat{\mathbf{O}}$ and $\hat{\mathbf{F}}^v$ denote the predicted
+occupancy logits and features, and
+$\mathcal{M}\in\{0,1\}^{X\times Y\times Z}$ the mask. We compute two
+terms, each restricted to masked positions:
+\begin{align}
+\mathcal{L}_{\text{occ}} &= \frac{1}{|\mathcal{M}|}
+\sum_{(x,y,z):\,m_{xyz}=1}\!\!\text{BCE}\!\left(\hat{O}_{xyz},O_{xyz}\right),\\
+\mathcal{L}_{\text{feat}} &= \frac{1}{|\mathcal{M}\cap\mathcal{O}^+|}
+\sum_{(x,y,z)\in\mathcal{M}\cap\mathcal{O}^+}\!\!\left\|\hat{\mathbf{F}}^v_{xyz}-\mathbf{F}^v_{xyz}\right\|_2^2,
+\end{align}
+where $\mathcal{O}^+=\{(x,y,z):O_{xyz}=1\}$ restricts the feature
+reconstruction to \emph{occupied} voxels (predicting features for empty
+space is uninformative). The combined objective is
+$\mathcal{L}=\lambda_{\text{occ}}\mathcal{L}_{\text{occ}}+\lambda_{\text{feat}}\mathcal{L}_{\text{feat}}$
+with $\lambda_{\text{occ}}=1.0$ and $\lambda_{\text{feat}}=0.5$. The
+supervision targets are read from the un-masked voxel input (occupancy
+$\mathbf{O}$ from the LiDAR voxelization, features $\mathbf{F}^v$ from the
+frozen DINOv2 ViT); because the target encoder is frozen it cannot
+co-adapt to the predictor, which rules out the trivial constant-output
+collapse mode of joint-target prediction.

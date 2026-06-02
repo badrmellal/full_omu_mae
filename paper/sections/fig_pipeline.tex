@@ -1,0 +1,59 @@
+% Pipeline schematic (TikZ). Wrapped in \resizebox so it always fits the
+% text width in both IEEEtran and the CVF/wacv two-column layout.
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\footnotesize,
+  >=Stealth,
+  box/.style={draw, rounded corners, minimum height=9mm, align=center, inner sep=3pt},
+  data/.style={box, fill=gray!10},
+  frozen/.style={box, fill=blue!8},
+  train/.style={box, fill=violet!12},
+  loss/.style={box, fill=red!10}
+]
+% camera branch (top)
+\node[data]   (img)   at (0,1.3)   {Camera\\image};
+\node[frozen] (dino)  at (2.3,1.3)  {DINOv2\\ViT-B/14\\(frozen)};
+\node[data]   (feat)  at (4.7,1.3)  {patch feat.\\$16{\times}16{\times}768$};
+% lidar branch (bottom)
+\node[data]   (lidar) at (0,-1.3)  {LiDAR\\points};
+\node[data]   (vox)   at (2.3,-1.3) {voxelize\\$128^2{\times}32$};
+% fused spine
+\node[train]  (fuse)  at (7.2,0)   {voxel input\\$\mathbf{O}\oplus\mathbf{F}^v$};
+\node[train]  (mask)  at (9.3,0)   {range-aware\\mask $\rho{=}0.85$};
+\node[train]  (enc)   at (11.3,0)  {3D CNN\\encoder};
+\node[train]  (bott)  at (13.0,0)  {bottleneck\\$256{\times}32^2{\times}8$};
+\node[train]  (dec)   at (14.9,0)  {3D CNN\\decoder};
+% heads + losses
+\node[box,fill=violet!12] (occh) at (16.9,0.95) {head:\\occ.\,$\hat{\mathbf{O}}$};
+\node[box,fill=violet!12] (fth)  at (16.9,-0.95) {head:\\feat.\,$\hat{\mathbf{F}}^v$};
+\node[loss] (locc) at (18.9,0.95) {$\mathcal{L}_{\text{occ}}$\\BCE};
+\node[loss] (lfeat) at (18.9,-0.95) {$\mathcal{L}_{\text{feat}}$\\MSE};
+% arrows
+\draw[->] (img)  -- (dino);
+\draw[->] (dino) -- (feat);
+\draw[->] (lidar)-- (vox);
+\draw[->] (feat)  -- (fuse);
+\draw[->] (vox)   -- (fuse);
+\draw[->] (fuse) -- (mask);
+\draw[->] (mask) -- (enc);
+\draw[->] (enc)  -- (bott);
+\draw[->] (bott) -- (dec);
+\draw[->] (dec) -- (occh);
+\draw[->] (dec) -- (fth);
+\draw[->] (occh) -- (locc);
+\draw[->] (fth)  -- (lfeat);
+\end{tikzpicture}%
+}
+\caption{\textbf{OMU-MAE pretraining pipeline.} A paired RGB image (top)
+is processed by a \emph{frozen} DINOv2 ViT-B/14 encoder; per-patch
+features are projected via the camera--LiDAR calibration and
+mean-aggregated per voxel. The LiDAR scan (bottom) is voxelized at
+$0.4$\,m into a $128{\times}128{\times}32$ grid. The concatenated
+cross-modal voxel input $\mathbf{O}\oplus\mathbf{F}^v$ is range-aware
+masked ($\rho{=}0.85$), encoded by a 3D CNN, and decoded back to two
+heads that reconstruct occupancy ($\mathcal{L}_{\text{occ}}$, BCE) and
+DINOv2 features ($\mathcal{L}_{\text{feat}}$, MSE) at masked positions.}
+\label{fig:pipeline}
+\end{figure*}

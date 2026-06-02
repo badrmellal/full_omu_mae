@@ -1,0 +1,59 @@
+\section{Limitations and Future Work}
+\label{sec:limitations}
+
+We list the remaining limitations in roughly the order we believe they
+should be addressed.
+
+\paragraph{(1) Single seed.}
+All numbers are from a single random seed; we report point estimates
+without error bars. Our pretraining is seed-deterministic and the run is
+resumable, so adding seeds is a matter of compute; a multi-seed study with
+confidence intervals is the most important next step, especially for the
+small in-domain deltas and the near-noise nuScenes transfer.
+
+\paragraph{(2) Re-implementations, not original code.}
+The Occupancy-MAE, SLidR and no-mask (CleverDistiller-equivalent)
+baselines are faithful re-implementations inside our dense 3D CNN
+framework, not the authors' original sparse-convolution code. They
+preserve the scientifically relevant design choices (LiDAR-only input $+$
+range-aware masking for Occupancy-MAE; SLIC-superpixel InfoNCE for SLidR;
+all-position VFM regression $+$ occupancy auxiliary for CleverDistiller)
+but differ in implementation details. Direct comparison against the
+original codebases is future work. UniM\textsuperscript{2}AE~\cite{unim2ae}
+(joint multi-modal MAE, raw-pixel target) and NS-MAE~\cite{nsmae}
+(volumetric rendering) use a different training and evaluation protocol and
+were not re-implemented.
+
+\paragraph{(3) Cross-sensor transfer is preliminary.}
+The nuScenes result is a frozen-probe transfer at a single seed with very
+low absolute mIoU ($<2.5\%$). It is sufficient to show that OMU-MAE's
+representation carries some sensor-agnostic signal (it beats random init,
+Occupancy-MAE and SLidR), but not to draw strong conclusions about the
+masking bias across sensors. A fine-tuned, multi-seed transfer study, and
+sensor-normalization of the input grid, are needed.
+
+\paragraph{(4) End-to-end fine-tuning.}
+We evaluate representation quality with the frozen linear probe, the
+standard protocol for this purpose; the low-label-fraction probe results
+($14.92\%$ mIoU at $1\%$ labels, $+9.97$\,pp over random) already speak to
+label efficiency. Full end-to-end fine-tuning of the encoder---together
+with a fine-tuned cross-sensor transfer---is a natural extension that we
+leave to future work.
+
+\paragraph{(5) Voxel resolution and probe depth.}
+The $0.4$\,m grid is coarse for small classes (motorcycle, person,
+bicyclist all $\sim 0$ mIoU under all conditions). A multi-resolution
+variant or a sparse-voxel backbone~\cite{minkowski}, combined with a
+shallow non-linear probe head, would likely improve fine-grained class
+IoU without changing the SSL objective.
+
+\paragraph{(6) A negative result on semantics-driven masking.}
+In a pilot study (at the smaller ViT-S/14 backbone) we tested whether
+masking driven by per-voxel DINOv2 feature norm---``mask the semantically
+rich voxels,'' the 3D analogue of SemMAE~\cite{semmae}---improves transfer.
+It \emph{underperformed} range-aware masking by $3$--$5$\,pp at every label
+fraction. The 2D-image intuition does not transfer to voxel MAE: the right
+principle appears to be ``mask the sensor-dense,'' not ``mask the
+semantically rich,'' validating Occupancy-MAE's range-aware
+design~\cite{occmae}. A full re-run at the ViT-B/14 backbone is future
+work.

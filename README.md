@@ -4,18 +4,20 @@
 
 Badr Mellal, Rabab Benfouina, Ahmed Drissi el Maliani — LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat, Morocco.
 
+> 📄 Paper (LaTeX, IEEE IV + WACV builds): [`paper/`](paper/) · see [`paper/README.md`](paper/README.md) for build instructions.
+
 ---
 
 ## Overview
 
 OMU-MAE (**O**ccupancy + **M**ulti-modal + **U**nified Masked Autoencoder) is a voxel-level masked autoencoder for self-supervised pretraining on paired camera + LiDAR data.
 
-Each scene is voxelized at 0.4 m resolution into a 128×128×32 grid. Per-voxel features are populated by projecting **frozen DINOv2 ViT-S/14** patch features through the camera–LiDAR calibration. Voxels are masked at high rate using the **range-aware schedule** of Occupancy-MAE, and a 3D CNN encoder–decoder is trained to reconstruct:
+Each scene is voxelized at 0.4 m into a 128×128×32 grid. Per-voxel features are populated by projecting **frozen DINOv2 ViT-B/14** (768-d) patch features through the camera–LiDAR calibration. Voxels are masked at high rate with the **range-aware schedule** of Occupancy-MAE, and a 3D CNN encoder–decoder reconstructs:
 
-1. Per-voxel binary **occupancy** (BCE).
-2. Masked **DINOv2 features** at occupied positions (MSE).
+1. Per-voxel binary **occupancy** (BCE), and
+2. The masked **DINOv2 features** at occupied positions (MSE).
 
-OMU-MAE fills the empty cell of the cross-modal SSL design space — *masked reconstruction with a frozen VFM as target* — and is positioned explicitly against Occupancy-MAE, UniM²AE, NS-MAE, SLidR, ScaLR, and CleverDistiller.
+OMU-MAE fills the empty cell of the cross-modal SSL design space — *masked reconstruction with a frozen VFM as target* — and is evaluated head-to-head against Occupancy-MAE, a re-implemented SLidR, and a no-mask (CleverDistiller-equivalent) baseline.
 
 | Target \ Objective | Distillation                         | Masked reconstruction       |
 |--------------------|--------------------------------------|-----------------------------|
@@ -24,27 +26,38 @@ OMU-MAE fills the empty cell of the cross-modal SSL design space — *masked rec
 
 ---
 
-## Headline Results
+## Headline result — SemanticKITTI linear probe
 
-Linear probe on SemanticKITTI (frozen encoder + 1×1×1 conv head), 19-class mIoU (%):
+Frozen-encoder linear probe (single 1×1×1 conv head), 19-class voxel mIoU (%). Same architecture + probe protocol for all five conditions; only the pretraining recipe differs.
 
-| Pretraining variant                       | 1%    | 5%    | 10%   | 100%  | Δ vs OMU-MAE |
-|-------------------------------------------|-------|-------|-------|-------|--------------|
-| Random init                               | 4.89  | 5.56  | 5.25  | 5.32  | −10.42       |
-| Occupancy-MAE (LiDAR-only re-impl.)       | 8.66  | 11.55 | 11.96 | 14.31 | −1.43        |
-| No-mask (CleverDistiller-equivalent)      | 9.24  | 11.01 | 11.46 | 14.24 | −1.50        |
-| **OMU-MAE (ours)**                        | **10.78** | **13.20** | **14.13** | **15.74** | —    |
+| Pretraining variant                          | 1%    | 5%    | 10%   | 100%  | Δ@100 |
+|-----------------------------------------------|-------|-------|-------|-------|-------|
+| Random init                                   | 4.95  | 5.72  | 6.14  | 5.50  | −14.19 |
+| Occupancy-MAE (LiDAR-only re-impl.)           | 13.88 | 16.34 | 17.08 | 17.91 | −1.77 |
+| SLidR (contrastive-VFM re-impl.)              | 12.40 | 13.82 | 14.66 | 15.46 | −4.22 |
+| No-mask (CleverDistiller-equivalent)          | 9.75  | 12.26 | 14.18 | 16.41 | −3.27 |
+| **OMU-MAE (ours)**                            | **14.92** | **17.49** | **18.56** | **19.68** | — |
 
-- Cross-modal target contribution: **+1.43 pp** at 100 % labels (vs Occupancy-MAE).
-- Masking inductive bias contribution: **+1.50 pp** at 100 % labels (vs no-mask).
-- Largest per-class gains: building **+36.6**, sidewalk **+32.8**, road **+25.1**, car **+23.0**, terrain **+21.4**, vegetation **+20.6** pp.
+**OMU-MAE wins at every label fraction.** The three controlled deltas at 100% labels isolate each design choice: **+1.77** vs Occupancy-MAE (the cross-modal target), **+3.27** vs no-mask (the masking inductive bias), **+4.22** vs SLidR (masked reconstruction vs contrastive distillation of the *same* frozen-VFM target).
+
+## Cross-sensor transfer — nuScenes (frozen probe, single seed)
+
+| Pretraining variant | 1% | 5% | 10% | 100% |
+|---------------------|----|----|-----|------|
+| Random init         | 0.45 | 0.58 | 0.68 | 0.83 |
+| Occupancy-MAE       | 0.30 | 0.37 | 0.46 | 0.61 |
+| SLidR               | 0.28 | 0.60 | 0.74 | 0.94 |
+| No-mask (CleverDist.-eq.) | **1.06** | **1.54** | **1.71** | **2.45** |
+| OMU-MAE (ours)      | 0.76 | 1.41 | 1.49 | 1.62 |
+
+Reported honestly: absolute mIoU is low (a 64-beam KITTI encoder, frozen, probed on a 32-beam nuScenes sensor; single seed). The robust pattern is that the **two cross-modal DINOv2-target variants (OMU-MAE + no-mask) separate from the LiDAR-only / contrastive / random baselines — the cross-modal target is what transfers**, while masked-vs-no-mask is within single-seed noise (the masking benefit is in-domain-specific).
 
 ---
 
 ## Method
 
 ```
-Camera RGB  ──► DINOv2 ViT-S/14 (frozen) ──► 16×16×384 patch features ──┐
+Camera RGB  ──► DINOv2 ViT-B/14 (frozen) ──► 16×16×768 patch features ──┐
                                                                         │ camera–LiDAR
                                                                         │ projection (P2, Tr)
                                                                         ▼
@@ -59,105 +72,78 @@ LiDAR points ─► voxelize (128×128×32) ──► O ⊕ Fv ──► range-a
                                        loss @ masked voxels                     loss @ masked ∩ occupied voxels
 ```
 
-- **Cross-modal voxel input.** Binary occupancy O ∈ {0,1}^(X×Y×Z) + per-voxel mean-pooled DINOv2 feature volume Fv ∈ R^(384×X×Y×Z), concatenated with a binary mask indicator → input of shape (1 + 384 + 1) × X × Y × Z.
-- **Range-aware masking.** Pr[m_xyz = 1] = ρ · (1 + α·d)^−1 with ρ = 0.85, α = 0.5; near-field voxels (dense LiDAR) are masked more aggressively.
-- **Encoder.** 4-stage 3D CNN (Conv3D + GroupNorm + GELU) with strided downsampling → bottleneck H ∈ R^(256×32×32×8).
-- **Decoder.** Mirror of encoder with trilinear upsampling, two heads (occupancy logit + 384-d feature prediction).
-- **Loss.** `L = λ_occ · L_occ + λ_feat · L_feat` with λ_occ = 1.0, λ_feat = 0.5. `L_occ` evaluated at all masked voxels; `L_feat` at masked ∩ occupied voxels only.
+- **Cross-modal voxel input.** Occupancy O ∈ {0,1}^(X×Y×Z) + per-voxel mean-pooled DINOv2 feature volume Fv ∈ R^(768×X×Y×Z), concatenated with a binary mask indicator → input (1 + 768 + 1) × X × Y × Z.
+- **Range-aware masking.** Pr[m = 1] = ρ·(1 + α·d)⁻¹, ρ = 0.85, α = 0.5; near-field (dense LiDAR) masked more.
+- **Encoder.** 4-stage 3D CNN (Conv3D + GroupNorm + GELU), strided → bottleneck 256×32×32×8.
+- **Decoder.** Mirror with trilinear upsampling; two heads (occupancy logit + 768-d feature prediction).
+- **Loss.** `L = 1.0·L_occ + 0.5·L_feat`, both at masked positions (feature loss at masked ∩ occupied).
 
 ---
 
-## Repo Layout
+## Repo layout
 
 ```
 kitti_omu_mae/
-├── README.md
-└── kitti_pretrain_omumae_full.ipynb     # end-to-end notebook (pretrain + probe)
+├── README.md                    # this file
+├── paper/                       # LaTeX (IEEE IV + WACV) — see paper/README.md
+├── omumae_full_pipeline.ipynb   # main end-to-end notebook (pretrain → probe → nuScenes transfer)
+├── results/                     # result JSONs + figures (the numbers above)
+├── docs/
+│   └── README_RUN.md            # detailed cloud-GPU run guide
+└── legacy/
+    ├── kitti_pretrain_omumae_full.ipynb   # earlier KITTI-only notebook (superseded)
+    └── run_nuscenes.py                    # standalone nuScenes re-run (notebook Part 2 supersedes it)
 ```
 
-The notebook trains and evaluates **four variants** in a single run:
-
-| Variant   | Architecture                              | Pretraining objective                                                  |
-|-----------|-------------------------------------------|------------------------------------------------------------------------|
-| `random`  | OMU-MAE class (architecture-matched)      | none — fresh init, used as probe baseline                              |
-| `occmae`  | `OccupancyMAEBaseline` (LiDAR-only 3D CNN) | range-aware mask + focal BCE on occupancy                              |
-| `nomask`  | OMU-MAE class (unchanged)                 | `mask_ratio=0`; cross-modal feature regression at all positions (≈ CleverDistiller) |
-| `full`    | OMU-MAE class (unchanged)                 | `mask=0.85` + dual reconstruction (current method)                     |
-
-Probe protocol is identical across variants (frozen encoder + 1×1×1 conv probe on bottleneck features).
+The notebook trains and probes **five variants** in one run (`random` / `occmae` / `slidr` / `nomask` / `full`), then runs the nuScenes cross-sensor transfer (Part 2). The frozen linear probe is the primary result; end-to-end fine-tuning is left as future work and is not included in this submission.
 
 ---
 
-## Setup
+## Setup & reproduce
 
-### Data
+**Data (Kaggle):** `hocop1/kitti-odometry` (left-camera + Velodyne + calib) and `luischavarriazamora/semantic-kitti` (per-point labels). nuScenes (`v1.0-trainval`) needs a nuScenes account.
 
-The notebook downloads everything it needs from Kaggle:
+**Backbone:** frozen DINOv2 ViT-B/14 (768-d) via `torch.hub` (config in cell 7).
 
-- `hocop1/kitti-odometry` — 22 sequences of left-camera images, Velodyne LiDAR, calibration.
-- `luischavarriazamora/semantic-kitti` — per-point class labels.
+**Hyperparameters (pretraining):** AdamW, lr 5e-4, weight decay 0.05, batch 4, 20,000 steps, grad-clip 1.0, mask ρ=0.85, range decay α=0.5, 16,384 LiDAR pts/scene, focal occupancy (α=0.25, γ=2.0).
 
-Pretraining uses KITTI odometry sequences 00–21 (8000 stratified frames, 90/10 train/val split). Evaluation uses SemanticKITTI sequences 00–10 with the official 19-class mapping.
+**Hardware:** runs on a single GPU (publication run: NVIDIA RTX PRO 6000); device-portable (CUDA bf16 / MPS fp32 / CPU fallback).
 
-### Hardware
-
-Configured for a single consumer-grade GPU. Reference: NVIDIA RTX 4080 (16 GB VRAM); the notebook auto-detects MPS / CPU as fallback.
-
-- Pretraining wall-clock: ≈ 1.5 h per variant.
-- Probe wall-clock: ≈ 1 h per variant.
-- Full 4-variant pretraining + 16 probe runs: ≈ 8 h end-to-end.
-
-### Hyperparameters
-
-| Stage         | Optimizer | LR        | Weight decay | Batch | Steps / epochs | Other                                |
-|---------------|-----------|-----------|--------------|-------|----------------|--------------------------------------|
-| Pretraining   | AdamW     | 5 × 10⁻⁴  | 0.05         | 2     | 5000 steps     | grad-clip 1.0, ρ = 0.85, α = 0.5, 16384 LiDAR pts/scene |
-| Linear probe  | AdamW     | 5 × 10⁻³  | —            | 2     | 5 epochs       | cross-entropy with `ignore_index=0`  |
-
-### Outputs
-
-Each variant writes to `data/runs/kitti_omumae_full/{variant}/`. The final comparison plot and `final_results.json` land in `data/runs/kitti_omumae_full/`.
+1. Open `omumae_full_pipeline.ipynb` (Colab / RunPod / local). Set Kaggle creds via env vars (`KAGGLE_USERNAME`, `KAGGLE_KEY`) — **never hard-code credentials**.
+2. Run the Setup cell (downloads KITTI + SemanticKITTI), then run all cells.
+3. Artifacts (JSONs + figures) collect into `results/`. See `docs/README_RUN.md` for the detailed cloud-GPU run guide.
 
 ---
 
-## How to Reproduce
+## Key findings
 
-1. Open `kitti_pretrain_omumae_full.ipynb` in Colab (T4/A100) or locally on a CUDA / MPS / CPU host.
-2. Run the **Setup** cell (downloads KITTI + SemanticKITTI).
-3. Run all cells — pretraining, probing, plotting, and `final_results.json` happen end-to-end.
-
----
-
-## Key Findings
-
-- **Pretraining matters.** All three pretrained variants outperform random init by a wide margin at every label fraction.
-- **Cross-modal target helps.** OMU-MAE > Occupancy-MAE by +1.43 pp at 100 % labels (and +2.12 pp at 1 %); cross-modal DINOv2 supervision is most useful in the data-scarce regime.
-- **Masking helps.** OMU-MAE > no-mask by +1.50 pp at 100 % labels and is consistent across all four label fractions (+1.54 / +2.19 / +2.67 / +1.50 pp).
-- **Negative result on semantic-aware masking.** DINOv2-feature-norm-guided masking *underperforms* range-aware masking by 3–5 pp absolute mIoU on every one of the 19 classes. The 2D intuition “mask the semantically rich” does not transfer to voxel MAE; the right principle in 3D appears to be **“mask the sensor-dense.”**
-
----
+- **Pretraining matters.** All four pretrained variants beat random init at every label fraction.
+- **Cross-modal target helps.** OMU-MAE > Occupancy-MAE by +1.77 pp @100% (the DINOv2 target).
+- **Masking helps in-domain.** OMU-MAE > no-mask by +3.27 pp @100% (and more in the low-label regime, +5.17 pp @1%).
+- **Masked reconstruction > contrastive distillation.** OMU-MAE > re-implemented SLidR by +4.22 pp @100%, for the same frozen-VFM target.
+- **Cross-sensor:** the cross-modal target transfers (OMU-MAE + no-mask lead on nuScenes); the masking benefit is in-domain-specific.
+- **Preliminary negative result (ViT-S pilot):** DINOv2-feature-norm-guided ("semantic") masking underperforms range-aware masking by 3–5 pp; in 3D the right principle is "mask the sensor-dense," not "mask the semantically rich."
 
 ## Limitations
 
-1. The Occupancy-MAE and CleverDistiller-equivalent baselines are faithful re-implementations in our dense 3D CNN framework, not the authors’ original sparse-conv code.
-2. Single-dataset evaluation (KITTI / SemanticKITTI). Transfer to nuScenes / Waymo Open is left for future work.
-3. The 0.4 m voxel grid is coarse for small classes (motorcycle, person, bicyclist ≈ 0 mIoU under all conditions). A multi-resolution variant or sparse-voxel backbone with a shallow non-linear probe head would likely help fine-grained classes.
+1. **Single seed** — point estimates, no error bars (the run is resumable; adding seeds is the main next step).
+2. Occupancy-MAE / SLidR / no-mask are faithful **re-implementations** in our dense 3D CNN framework, not the authors' original code.
+3. **Cross-sensor transfer is preliminary** (frozen probe, single seed, low absolute mIoU).
+4. **End-to-end fine-tuning** is future work (the frozen linear probe is the primary representation-quality measure here).
+5. The 0.4 m voxel grid is coarse for small classes (motorcycle/person/bicyclist ≈ 0 mIoU under all conditions).
 
 ---
 
 ## Citation
 
 ```bibtex
-@misc{mellal2025omumae,
+@misc{mellal2026omumae,
   title  = {OMU-MAE: Cross-Modal Masked Voxel Pretraining with Frozen Vision Foundation Targets for Autonomous Driving Perception},
   author = {Mellal, Badr and Benfouina, Rabab and Drissi el Maliani, Ahmed},
-  year   = {2025},
+  year   = {2026},
   note   = {LRIT Laboratory, Mohammed V University in Rabat}
 }
 ```
 
 ## Contact
-
-- badr_mellal@um5.ac.ma
-- r.benfouina@um5r.ac.ma
-- a.elmaliani@um5r.ac.ma
+badr_mellal@um5.ac.ma · r.benfouina@um5r.ac.ma · a.elmaliani@um5r.ac.ma

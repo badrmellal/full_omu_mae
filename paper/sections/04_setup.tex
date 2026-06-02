@@ -1,0 +1,78 @@
+\section{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Pretraining data.}
+We pretrain on KITTI odometry~\cite{kittiraw,kittibench}, which provides
+paired left-camera images, Velodyne HDL-64E scans, and calibration. We
+use all available frames (no subsampling) and voxelize each scene as in
+Sec.~\ref{sec:method}.
+
+\paragraph{Evaluation data.}
+For evaluation we use SemanticKITTI~\cite{semantickitti}, which provides
+per-point class labels. We follow the official train/validation split
+(sequence~08 held out for validation), use the standard 19-class
+evaluation mapping, voxelize each scan into the same
+$128\times128\times32$ grid, and assign each voxel its majority label.
+Voxels with no labeled points are marked \texttt{ignore}.
+
+\paragraph{Linear-probe protocol.}
+We evaluate the frozen pretrained encoder by attaching a single
+$1\times1\times1$ 3D convolutional head ($C\!\rightarrow\!20$ classes) at
+the bottleneck resolution and trilinearly upsampling logits to the full
+grid. The encoder is frozen; only the head is trained. We train for $5$
+epochs with AdamW, $\text{lr}=5\times10^{-4}$, cross-entropy with
+\texttt{ignore\_index}$=0$, and sweep label fractions
+$\{1\%,5\%,10\%,100\%\}$. This probes representation quality: any
+non-trivial mIoU a linear head achieves must originate from features the
+encoder already provides in linearly separable form.
+
+\paragraph{Baselines (identical protocol).}
+We compare four baselines against OMU-MAE under the \emph{same} 3D CNN
+architecture and probe protocol; only the pretraining recipe differs.
+\begin{itemize}
+\item \textbf{Random init:} same architecture, freshly initialized
+weights, no pretraining.
+\item \textbf{Occupancy-MAE} (LiDAR-only re-impl.): truly LiDAR-only input
+(occupancy $+$ mask indicator, no DINOv2 channels), range-aware masking
+with the same schedule, focal BCE on masked occupancy only. Isolates the
+contribution of the cross-modal DINOv2 target.
+\item \textbf{SLidR} (contrastive re-impl.): a faithful in-framework
+re-implementation of SLidR's~\cite{slidr} contrastive VFM distillation. We
+compute SLIC superpixels on the image, mean-pool the frozen DINOv2
+features per superpixel (the targets) and the encoder's voxel features per
+corresponding superpoint, and train an InfoNCE loss between matched
+superpixel/superpoint pairs. The student input is occupancy only (the VFM
+features are the \emph{target}, not an input) and there is \emph{no}
+masking. This isolates contrastive distillation vs.\ masked
+reconstruction of the same frozen-VFM target.
+\item \textbf{No-mask} (CleverDistiller-equivalent): OMU-MAE's
+architecture and full cross-modal input, but with $\rho=0$ (no masking);
+the model regresses occupancy and DINOv2 features at \emph{all} positions.
+This is functionally equivalent to CleverDistiller's~\cite{cleverdistiller}
+recipe (direct VFM feature regression $+$ occupancy auxiliary task) in our
+voxel grid, and isolates the masking inductive bias.
+\end{itemize}
+
+\paragraph{Hyperparameters.}
+Pretraining: AdamW, $\text{lr}=5\times10^{-4}$, weight decay $0.05$, batch
+size $4$, $20{,}000$ steps, gradient clipping at norm $1.0$, mask ratio
+$\rho=0.85$, range decay $\alpha=0.5$, $16{,}384$ LiDAR points per scene,
+and a focal occupancy loss ($\alpha=0.25,\gamma=2.0$). The frozen target
+is DINOv2 ViT-B/14 (768-d features). The architecture, training schedule,
+probe protocol, and random seed are identical across all five conditions.
+Pretraining runs on a single GPU (NVIDIA RTX PRO 6000); the full
+five-variant pretraining plus probe sweep completes in well under a day.
+
+\paragraph{Cross-sensor transfer (nuScenes).}
+To test whether the learned representation transfers across LiDAR
+sensors, scene compositions, and label vocabularies, we additionally
+evaluate on nuScenes~\cite{nuscenes} (\texttt{v1.0-trainval}). We take
+each KITTI-pretrained encoder \emph{frozen}, project LiDAR points into
+whichever of the six surround cameras observes them, voxelize into the
+same grid, train only a fresh linear probe on nuScenes labels at
+$\{1\%,5\%,10\%,100\%\}$, and report mIoU on the official validation split
+($6{,}019$ keyframes). This is a deliberately hard setting: a $64$-beam
+KITTI encoder is transferred to a $32$-beam nuScenes sensor with a
+different camera rig and class set, with no fine-tuning of the encoder. We
+report a single seed; we discuss this as a limitation in
+Sec.~\ref{sec:limitations}.

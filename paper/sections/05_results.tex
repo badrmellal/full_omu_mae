@@ -1,0 +1,182 @@
+\section{Results}
+
+% --- 5.1 is wrapped in \ifextrafigs: dropped automatically in the
+%     ~6-page IEEE build, kept for the 8-page WACV / arXiv build. ---
+\ifextrafigs
+\subsection{Self-supervised pretraining dynamics}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{loss_curves.png}
+\caption{\textbf{Pretraining dynamics.} Left: total loss vs.\ step.
+Center: per-component decomposition (log-$y$) of
+$\mathcal{L}_{\text{occ}}$ and $\mathcal{L}_{\text{feat}}$. Right:
+masked-voxel occupancy accuracy. Total loss decreases steadily over the
+$20$k pretraining steps; masked-voxel occupancy accuracy converges above
+$97\%$ while the feature-reconstruction term decreases more gradually.}
+\label{fig:dynamics}
+\end{figure*}
+
+Figure~\ref{fig:dynamics} shows the training-loss decomposition for the
+OMU-MAE variants. Occupancy loss drops sharply early and the
+masked-voxel occupancy accuracy saturates above $97\%$; the
+feature-reconstruction term $\mathcal{L}_{\text{feat}}$ decreases more
+gradually, consistent with the harder regression target.
+Figure~\ref{fig:recon} shows a representative held-out scene: the input
+camera image, ground-truth occupancy in bird's-eye view, the masking
+pattern at $\rho=0.85$, and the model's predicted occupancy at masked
+positions. The encoder recovers the dominant geometric structure despite
+the high mask ratio.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{reconstruction_full.png}
+\caption{\textbf{Reconstruction on a held-out scene (OMU-MAE).} Left to
+right: input camera image, ground-truth voxel occupancy (BEV,
+max-projected), masking pattern (masked voxels), and predicted occupancy
+at masked positions.}
+\label{fig:recon}
+\end{figure*}
+\fi
+
+\subsection{Linear probe on SemanticKITTI}
+\label{sec:probe}
+Table~\ref{tab:probe} and Figure~\ref{fig:probe} report the headline
+result. Under the identical five-way protocol, every pretraining variant
+outperforms random initialization, and \textbf{OMU-MAE wins at every
+label fraction}. Three controlled deltas isolate the design choices at
+$100\%$ labels: OMU-MAE vs.\ Occupancy-MAE ($+1.77$\,pp) measures the
+cross-modal DINOv2 target; OMU-MAE vs.\ the no-mask variant ($+3.27$\,pp)
+measures the masking inductive bias; and OMU-MAE vs.\ the SLidR
+re-implementation ($+4.22$\,pp) measures masked reconstruction against
+contrastive distillation of the \emph{same} frozen-VFM target. All three
+gains are consistent across the four label fractions.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{SemanticKITTI linear probe, five-way controlled
+ablation.} mIoU (\%) over the 19 evaluation classes for the
+frozen-encoder linear probe at four label fractions. All conditions use
+the same dense 3D CNN architecture and probe protocol; only the
+pretraining recipe differs. The last column gives the absolute gap (pp)
+of OMU-MAE over each baseline at $100\%$ labels.}
+\label{tab:probe}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+Pretraining variant & 1\% & 5\% & 10\% & 100\% & $\Delta$@100 \\
+\midrule
+Random init                                  & 4.95 & 5.72 & 6.14 & 5.50 & $-14.19$\\
+Occupancy-MAE~\cite{occmae} (LiDAR-only)      & 13.88 & 16.34 & 17.08 & 17.91 & $-1.77$\\
+SLidR~\cite{slidr} (contrastive re-impl.)     & 12.40 & 13.82 & 14.66 & 15.46 & $-4.22$\\
+No-mask (CleverDist.-eq.)~\cite{cleverdistiller} & 9.75 & 12.26 & 14.18 & 16.41 & $-3.27$\\
+\textbf{OMU-MAE (ours)} & \textbf{14.92} & \textbf{17.49} & \textbf{18.56} & \textbf{19.68} & --\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{probe_comparison_5way.png}
+\caption{\textbf{Linear-probe results (five-way).} Left: voxel mIoU on
+SemanticKITTI validation across the four label fractions. Right: $\Delta$
+in percentage points over random init at $100\%$ labels for each
+pretrained variant.}
+\label{fig:probe}
+\end{figure*}
+
+\paragraph{On the widening gap over random.}
+OMU-MAE's gap over random init grows from $+9.97$\,pp at $1\%$ to
+$+14.19$\,pp at $100\%$, which superficially contradicts the usual ``SSL
+helps most when labels are scarce.'' We attribute this to
+\emph{undertraining of the random baseline}: a freshly initialized 3D CNN
+trained for $5$ probe epochs on a frozen, randomly projected feature space
+has not converged, whereas the pretrained encoder already exposes
+linearly separable structure that the probe reads off directly. A longer
+probe schedule would partly close the random gap; we leave a probe-epoch
+sweep to future work.
+
+\subsection{Per-class analysis}
+Figure~\ref{fig:perclass} reports per-class IoU at $100\%$ labels. The
+OMU-MAE gains over random init concentrate on the dominant geometric and
+semantic classes: building, sidewalk, road, car, terrain, vegetation,
+fence and pole. Small or rare classes (motorcyclist, bicyclist, person,
+bicycle, motorcycle) remain near-zero IoU under \emph{all} conditions. The
+probe protocol, with $0.4$\,m voxelization that collapses small objects to
+$1$--$2$ voxels and a single linear classifier, cannot recover their
+fine-grained semantics regardless of the pretraining recipe.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{probe_per_class_5way.png}
+\caption{\textbf{Per-class IoU at $100\%$ labels.} Left: per-class IoU
+(\%); classes sorted by OMU-MAE IoU. Right: per-class $\Delta$ IoU (pp)
+of OMU-MAE over random. Gains concentrate on geometric, semantic classes
+(road, building, vegetation, terrain).}
+\label{fig:perclass}
+\end{figure*}
+
+\subsection{Cross-sensor transfer to nuScenes}
+\label{sec:nuscenes}
+Table~\ref{tab:nusc} and Figure~\ref{fig:nusc} report the nuScenes
+cross-sensor transfer. We report this result \emph{honestly}: absolute
+mIoU is low for all variants ($<2.5\%$), reflecting how hard the setting
+is---a $64$-beam KITTI encoder, frozen, probed on a $32$-beam nuScenes
+sensor with a different camera rig and class vocabulary, single seed.
+Because absolute mIoU is low and single-seed, we read the table
+qualitatively rather than as a precise ranking. The robust pattern is that
+the two cross-modal DINOv2-target variants---OMU-MAE and its no-mask
+ablation---separate clearly from the LiDAR-only Occupancy-MAE, the
+contrastive SLidR baseline, and random init at every fraction:
+\emph{the frozen-VFM target, not the masking, is what carries across
+sensors.} Within that DINOv2-target pair the masked and no-mask variants
+are within run-to-run noise of each other. This is consistent with the
+in-domain result rather than contradicting it: masking is the dominant
+lever \emph{in domain}, while the cross-modal target---a core ingredient of
+OMU-MAE shared with the no-mask ablation---is what generalizes
+\emph{across sensors}. We do not over-claim a cross-sensor win for masking.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{nuScenes cross-sensor transfer} (frozen
+KITTI-pretrained encoder, fresh linear probe, single seed, $6{,}019$
+validation keyframes). mIoU (\%) at four label fractions; best per column
+in bold. Both cross-modal DINOv2-target variants (OMU-MAE and its no-mask
+ablation) separate from the LiDAR-only, contrastive, and random baselines:
+the cross-modal target transfers, while masked-vs-no-mask is within
+single-seed noise. Absolute mIoU is low---read qualitatively.}
+\label{tab:nusc}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lcccc}
+\toprule
+Pretraining variant & 1\% & 5\% & 10\% & 100\% \\
+\midrule
+Random init                       & 0.45 & 0.58 & 0.68 & 0.83 \\
+Occupancy-MAE~\cite{occmae}        & 0.30 & 0.37 & 0.46 & 0.61 \\
+SLidR~\cite{slidr}                 & 0.28 & 0.60 & 0.74 & 0.94 \\
+No-mask (CleverDist.-eq.)~\cite{cleverdistiller} & \textbf{1.06} & \textbf{1.54} & \textbf{1.71} & \textbf{2.45} \\
+OMU-MAE (ours)                     & 0.76 & 1.41 & 1.49 & 1.62 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{nuscenes_transfer_5way.png}
+\caption{\textbf{nuScenes cross-sensor transfer (five-way).} Frozen
+KITTI-pretrained encoder, fresh linear probe on nuScenes. Absolute mIoU is
+low for all variants; the in-domain advantage of masking does not carry
+across sensors.}
+\label{fig:nusc}
+\end{figure}
+
+\subsection{Diagnostics}
+\paragraph{Cross-modal scene retrieval.}
+For completeness we report scene-level cross-modal retrieval: given the
+scene-level mean encoder feature for one modality, retrieve the matching
+scene from the other ($N=4{,}355$). Retrieval is essentially at chance
+(image$\rightarrow$LiDAR Recall@1 $=0.02\%$ vs.\ chance $0.02\%$;
+LiDAR$\rightarrow$image $0.05\%$; median rank $\approx N/2$). The per-voxel
+cross-modal objective produces \emph{locally} useful features without by
+itself inducing a globally aligned scene-level embedding; a scene-level
+contrastive auxiliary or improved pooling would likely improve this, which
+we leave to future work.

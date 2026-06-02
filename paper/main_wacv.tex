@@ -1,0 +1,73 @@
+% =====================================================================
+%  OMU-MAE  --  WACV build  (CVF / wacv template)
+%
+%  REQUIRED FILES (get them from the official WACV 2027 Author Kit,
+%  or the "WACV Author Kit" Overleaf template, and drop next to this file):
+%      wacv.sty            ieee_fullname.bst
+%  The CVF "wacv" package handles double-blind: the [review] option
+%  anonymizes the author block and adds line numbers automatically.
+%  Switch to [final] (and set \anonfalse) for the camera-ready.
+%
+%  Page budget: WACV = 8 pages incl. figures/tables, + unlimited
+%  references. Anything over 8 (excl. refs) is desk-rejected.
+% =====================================================================
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage[review]{wacv}      % <-- use [final] for camera-ready
+
+% ---- double-blind switch (keep in sync with the class option above) -
+\newif\ifanon \anontrue
+% ---- optional figures (WACV 8 pp: ON; turn OFF if you run over) -----
+\newif\ifextrafigs \extrafigstrue
+% --------------------------------------------------------------------
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc}
+
+\usepackage[pagebackref,breaklinks,colorlinks,bookmarks=false]{hyperref}
+
+\graphicspath{{figures/}}
+
+\def\wacvPaperID{XXXX}          % <-- your paper ID (review only)
+\def\confName{WACV}
+\def\confYear{2027}
+
+\begin{document}
+
+\title{OMU-MAE: Cross-Modal Masked Voxel Pretraining with
+Frozen Vision Foundation Targets for Autonomous Driving Perception}
+
+\ifanon
+  \author{}      % [review] mode prints "Anonymous WACV submission"
+\else
+  \author{Badr Mellal \quad Rabab Benfouina \quad Ahmed Drissi el Maliani\\
+  LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat, Morocco\\
+  {\tt\small badr\_mellal@um5.ac.ma, r.benfouina@um5r.ac.ma, a.elmaliani@um5r.ac.ma}}
+\fi
+
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+\input{sections/01_intro}
+\input{sections/02_related}
+\input{sections/03_method}
+\input{sections/04_setup}
+\input{sections/05_results}
+\input{sections/06_discussion}
+\input{sections/07_limitations}
+\input{sections/08_conclusion}
+
+{\small
+\bibliographystyle{ieee_fullname}
+\bibliography{refs}
+}
+
+\end{document}

@@ -1,0 +1,61 @@
+\section{Introduction}
+
+Self-supervised learning (SSL) has sharply reduced the labeling burden
+in 2D perception~\cite{mae,dino,dinov2}, but transferring this success to
+autonomous driving remains challenging. Driving scenes are inherently
+multi-modal, combining camera images dense in semantics with LiDAR point
+clouds dense in geometry. A useful pretrained representation must capture
+\emph{both}, ideally without large GPU farms and without paired human
+annotation.
+
+Recent work spans roughly four cells of a $2\times2$ design grid, indexed
+by (i)~training objective and (ii)~target source. We summarize this
+design space in Table~\ref{tab:design}. The bottom-right cell---masked
+reconstruction with a frozen vision foundation model (VFM) as
+target---is the empty cell that motivates OMU-MAE. Closely related
+methods occupy adjacent cells but make different design choices:
+UniM\textsuperscript{2}AE~\cite{unim2ae} jointly trains both modality
+encoders and reconstructs raw pixels and LiDAR; NS-MAE~\cite{nsmae}
+reconstructs raw observations through volumetric NeRF rendering;
+SLidR~\cite{slidr}, ScaLR~\cite{scalr} and CleverDistiller~\cite{cleverdistiller}
+distill VFM features at \emph{all} positions without masking. We do not
+claim this empty cell is fundamentally novel as a recipe---each of its
+ingredients is well known---but we report a controlled end-to-end
+empirical study of it on KITTI / SemanticKITTI, with a fair in-framework
+head-to-head against the adjacent cells.
+
+\paragraph{Two design choices and their motivation.}
+First, a \emph{frozen} image encoder. A frozen target cannot co-adapt to
+the predictor, ruling out the trivial constant-output collapse mode that
+affects joint-target prediction methods~\cite{ijepa,lejepa}. The encoder
+still receives strong, dense semantic supervision because DINOv2 features
+are themselves a strong representation. Second, \emph{masked
+reconstruction} rather than direct distillation. Masking forces the
+encoder to inpaint missing voxel context from surrounding visible voxels,
+an inductive bias that distillation at every position does not impose.
+Whether this inductive bias actually improves downstream transfer
+compared to a non-masked baseline is an open empirical question; we
+answer it directly by re-implementing both a contrastive (SLidR) and a
+non-masked distillation (CleverDistiller-equivalent) baseline on
+identical data and protocol.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+\item We propose OMU-MAE, a voxel-level masked autoencoder whose target
+combines binary occupancy and frozen DINOv2~\cite{dinov2} features
+projected from the paired camera image. A dual reconstruction loss
+recovers both signals at masked positions.
+\item We position the method explicitly inside the existing cross-modal
+SSL design space (the $2\times2$ above), articulate what is and is not
+new, and distinguish OMU-MAE from each adjacent baseline in a thorough
+Related Work section.
+\item We provide a \emph{five-way} controlled ablation on KITTI /
+SemanticKITTI (random init / Occupancy-MAE re-impl. / SLidR re-impl. /
+no-mask CleverDistiller-equivalent / OMU-MAE) under an identical linear-probe
+protocol, isolating each design choice; OMU-MAE improves by
+$+1.77$\,pp over Occupancy-MAE (cross-modal target) and $+3.27$\,pp over
+the no-mask variant (masking), and beats the SLidR baseline by
+$+4.22$\,pp (masked reconstruction vs.\ contrastive distillation of the
+same VFM). We additionally report a nuScenes cross-sensor transfer study
+and a preliminary negative result on semantics-driven masking.
+\end{enumerate}

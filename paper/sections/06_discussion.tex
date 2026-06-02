@@ -1,0 +1,57 @@
+\section{Discussion}
+
+\paragraph{What does the linear-probe gap measure?}
+The probe is a single $1\times1\times1$ convolution with no nonlinearity.
+Any non-trivial mIoU it achieves must originate from features the encoder
+already provides in linearly separable form. A $2$--$3\times$ improvement
+over random init at every label fraction indicates that OMU-MAE places a
+substantial portion of supervision-relevant variance into the linear span
+of its bottleneck.
+
+\paragraph{What does the cross-modal target buy?}
+Comparing OMU-MAE against the Occupancy-MAE baseline (truly LiDAR-only, no
+DINOv2 input or feature head; otherwise identical architecture, masking,
+and probe) isolates the cross-modal DINOv2 supervision. OMU-MAE improves
+by $+1.77$\,pp at $100\%$ labels and by $+1.0$ to $+1.8$\,pp consistently
+across fractions. The frozen-VFM target adds a modest but reliable
+semantic signal on top of pure geometric occupancy reconstruction.
+
+\paragraph{What does masking buy?}
+Comparing OMU-MAE against the no-mask variant (full cross-modal input but
+$\rho=0$, functionally a CleverDistiller-equivalent) isolates the masking
+inductive bias. Masking helps by $+3.27$\,pp at $100\%$ and \emph{more} in
+the low-label regime ($+5.17$\,pp at $1\%$): forcing the encoder to inpaint
+missing voxel context from surrounding visible voxels yields features that
+are more useful precisely when downstream labels are scarce.
+
+\paragraph{Masked reconstruction vs.\ contrastive distillation.}
+The head-to-head against the SLidR re-implementation is the most direct
+test of our central claim. Both consume the \emph{same} frozen DINOv2
+target; they differ only in objective (masked feature reconstruction in a
+dense voxel grid vs.\ InfoNCE contrastive matching at sparse superpoint
+resolution). OMU-MAE wins by $+2.52$ to $+4.22$\,pp, with the gap growing
+as labels increase. Notably, in our dense-voxel probe the SLidR baseline
+($15.46\%$) is also \emph{below} the LiDAR-only Occupancy-MAE
+($17.91\%$): a dense masked-occupancy objective outperforms sparse
+contrastive VFM distillation under this protocol. We read this as evidence
+that dense, per-voxel reconstruction targets suit a dense voxel encoder
+better than sparse superpoint-level contrastive objectives, rather than as
+a claim that contrastive distillation is weak in general (SLidR still beats
+random init by $+9.96$\,pp).
+
+\paragraph{Why a frozen DINOv2 target?}
+A frozen target cannot co-adapt to the predictor, so the trivial
+constant-output collapse mode that affects joint-target prediction
+methods~\cite{ijepa,lejepa} cannot achieve low loss. This sidesteps the
+regularization machinery (VICReg, LeJEPA, I-JEPA-style asymmetries) needed
+by approaches whose target evolves during training.
+
+\paragraph{In-domain vs.\ cross-sensor.}
+The KITTI probe and the nuScenes transfer isolate different ingredients.
+In-domain, masking is the largest single lever. Across sensors, the
+deciding factor is instead the cross-modal DINOv2 target: both
+DINOv2-target variants (masked and no-mask) transfer well above the
+LiDAR-only, contrastive, and random baselines, while masked vs.\ no-mask
+sits within single-seed noise. The masking inductive bias is thus
+domain-specific, whereas the frozen-VFM target---which OMU-MAE shares with
+the no-mask variant---is what generalizes across sensors.
