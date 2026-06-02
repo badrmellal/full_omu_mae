@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this code or paper, please cite it as below."
+title: "OMU-MAE: Cross-Modal Masked Voxel Pretraining with Frozen Vision Foundation Targets for Autonomous Driving Perception"
+type: software
+authors:
+  - family-names: "Mellal"
+    given-names: "Badr"
+    affiliation: "LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat"
+  - family-names: "Benfouina"
+    given-names: "Rabab"
+    affiliation: "LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat"
+  - family-names: "Drissi el Maliani"
+    given-names: "Ahmed"
+    affiliation: "LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat"
+repository-code: "https://github.com/badrmellal/full_omu_mae"
+date-released: "2026-06-02"
