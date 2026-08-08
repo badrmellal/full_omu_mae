@@ -4,21 +4,33 @@
 The MAE paradigm~\cite{mae} was extended to LiDAR by
 Occupancy-MAE~\cite{occmae} and Voxel/LiDAR-MAE~\cite{hess2023lidar}, with
 MAELi~\cite{maeli} scaling it to large sequences. Occupancy-MAE introduced
-range-aware masking and reconstructs binary voxel occupancy. OMU-MAE keeps
-its range-aware schedule but \emph{adds} a second target at masked
-positions---a $768$-d vector matching the frozen DINOv2 patch feature
-projected from the paired image---and trains both losses jointly.
+range-aware masking and reconstructs binary voxel occupancy. The proposed
+OMU-MAE keeps its range-aware schedule but \emph{adds} a second target at
+masked positions---a $768$-d vector matching the frozen DINOv2 patch
+feature projected from the paired image. The joint dual objective
+(occupancy plus frozen-feature reconstruction, both restricted to masked
+positions) is proposed in this work; the occupancy term inherits
+Occupancy-MAE's geometry supervision while the feature term injects
+semantics that a binary target cannot carry. Regressing \emph{frozen}
+teacher features at masked positions is well validated in 2D---MaskFeat's
+ablations~\cite{maskfeat}, MILAN~\cite{milan} and EVA~\cite{eva} all show
+it outperforms raw-pixel targets; OMU-MAE lifts this recipe to
+cross-modal voxel-level driving scenes.
 
 \paragraph{Multi-modal masked autoencoders.}
 UniM\textsuperscript{2}AE~\cite{unim2ae} jointly trains both modality
 encoders and reconstructs \emph{raw} pixels and LiDAR through a 3D
 interaction module; NS-MAE~\cite{nsmae} reconstructs raw observations via
-NeRF-style volumetric rendering. OMU-MAE differs on three axes: the image
-encoder is \emph{frozen}, the cross-modal target is the frozen DINOv2
-\emph{feature} volume (not raw pixels), and there is no interaction module
-or back-projection---only direct concatenation into the voxel input. The
-trade-off is intentional: less expressive, but it trains in a few hours on
-a single GPU.
+NeRF-style volumetric rendering. OMU-MAE differs on three axes, each with
+a concrete payoff: the image encoder is \emph{frozen}, which removes the
+collapse risk of joint training and halves the trainable footprint; the
+cross-modal target is the frozen DINOv2 \emph{feature} volume rather than
+raw pixels, so supervision carries semantics instead of photometric
+nuisance; and there is no interaction module or back-projection---only
+direct concatenation into the voxel input---which keeps the whole pipeline
+a single 3D CNN branch that trains in a few hours on one GPU. The
+trade-off is intentional: less expressive than a jointly trained
+two-branch model, but far cheaper and collapse-free by construction.
 
 \paragraph{Vision-foundation-model distillation to LiDAR.}
 SLidR~\cite{slidr}, ScaLR~\cite{scalr} and SuperFlow++~\cite{superflow}

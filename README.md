@@ -4,8 +4,6 @@
 
 Badr Mellal, Rabab Benfouina, Ahmed Drissi el Maliani, LRIT Laboratory, Faculty of Sciences in Rabat, Mohammed V University in Rabat, Morocco.
 
-> 📄 Paper (LaTeX, IEEE IV + WACV builds): [`paper/`](paper/) · see [`paper/README.md`](paper/README.md) for build instructions.
-
 ---
 
 ## Overview
